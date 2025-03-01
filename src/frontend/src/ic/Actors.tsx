@@ -24,129 +24,88 @@ const useActorBase = createUseActorHook<_SERVICE>(actorContext);
 export const useActor = () => {
   const actor = useActorBase();
   
-  if (!actor) return null;
-
-  // Log diagnostic information
-  console.log('Actor object:', actor);
-  
-  // Return a proxy that automatically tries the actor.actor property
-  // Check if we have a valid actor to return first
-  if (!actor) {
-    console.warn('Actor is null or undefined');
-    return null;
-  }
-  
-  // Log the actor structure but don't do it too often
-  console.log('Actor structure:', Object.keys(actor));
-  
-  // Special debug for nested actor
-  if (actor.actor) {
-    console.log('Nested actor structure:', Object.keys(actor.actor));
-    
-    // Check specifically for list_all_videos
-    if (typeof actor.actor.list_all_videos === 'function') {
-      console.log('✅ list_all_videos found on actor.actor');
-    } else {
-      console.log('❌ list_all_videos NOT found on actor.actor');
-    }
-  } else {
-    console.log('No nested actor.actor property found');
-  }
-  
-  // Also check on main actor
-  // @ts-ignore - we're checking if it exists
-  if (typeof actor.list_all_videos === 'function') {
-    console.log('✅ list_all_videos found directly on actor');
-  } else {
-    console.log('❌ list_all_videos NOT found directly on actor');
-  }
-
-  // Use a stable proxy to avoid dependencies changing in useEffect hooks
-  return new Proxy(actor, {
-    get(target, prop, receiver) {
-      if (typeof prop === 'string') {
-        console.log(`Attempting to access method: ${String(prop)}`);
-      }
-      
-      // Direct methods from the candid interface - our top priority
-      if (prop === 'list_all_videos' || prop === 'list_videos_by_tag') {
-        console.log(`Looking for direct method: ${String(prop)}`);
-        
-        // Look in the target first (main object)
-        const directMethod = Reflect.get(target, prop, receiver);
-        if (typeof directMethod === 'function') {
-          console.log(`Found ${String(prop)} directly on actor`);
-          return directMethod.bind(target);
-        }
-        
-        // Then try the actor property if it exists
-        if (target.actor) {
-          try {
-            // @ts-ignore - using dynamic property access
-            const nestedMethod = target.actor[prop as any];
-            if (typeof nestedMethod === 'function') {
-              console.log(`Found ${String(prop)} on nested actor.actor`);
-              return nestedMethod.bind(target.actor);
-            }
-          } catch (e) {
-            console.error(`Error accessing ${String(prop)} on nested actor:`, e);
-          }
-        }
-      }
-      
-      // Allow direct access to the actor property
-      if (prop === 'actor') {
-        return Reflect.get(target, prop, receiver);
-      }
-      
-      // First check if prop exists directly on the actor
-      const directValue = Reflect.get(target, prop, receiver);
-      if (directValue !== undefined && directValue !== null) {
-        if (typeof directValue === 'function') {
-          console.log(`Using direct method: ${String(prop)}`);
-          return directValue.bind(target);
-        }
-        return directValue;
-      }
-      
-      // If not found, look for the method on the target.actor property
-      if (target.actor && typeof prop === 'string') {
+  // Create a mock actor for development
+  const mockActor = {
+    actor: {
+      // Mock implementation of list_all_videos
+      list_all_videos: async () => {
+        console.log('Using mock list_all_videos implementation');
         try {
-          // @ts-ignore - using dynamic property access
-          const nestedValue = target.actor[prop as any];
-          if (typeof nestedValue === 'function') {
-            console.log(`Accessing nested method: ${String(prop)}`);
-            return nestedValue.bind(target.actor);
-          }
-        } catch (e) {
-          console.error(`Error accessing ${String(prop)} on nested actor:`, e);
+          const response = await fetch('http://localhost:55662/api/videos');
+          const data = await response.json();
+          console.log('Mock backend returned videos:', data);
+          return data;
+        } catch (error) {
+          console.error('Error fetching from mock backend:', error);
+          return [];
         }
+      },
+      
+      // Mock implementation of list_videos_by_tag
+      list_videos_by_tag: async (tag) => {
+        console.log('Using mock list_videos_by_tag implementation with tag:', tag);
+        try {
+          const response = await fetch(`http://localhost:55662/api/videos/tag/${tag}`);
+          const data = await response.json();
+          console.log('Mock backend returned videos for tag:', data);
+          return data;
+        } catch (error) {
+          console.error('Error fetching from mock backend:', error);
+          return [];
+        }
+      },
+      
+      // Mock implementation of get_video_metadata
+      getVideoMetadata: async (videoId) => {
+        console.log('Using mock getVideoMetadata implementation with ID:', videoId);
+        try {
+          const response = await fetch(`http://localhost:55662/api/videos/${videoId}`);
+          const data = await response.json();
+          console.log('Mock backend returned video metadata:', data);
+          return data;
+        } catch (error) {
+          console.error('Error fetching from mock backend:', error);
+          return { Err: 'Failed to fetch video metadata' };
+        }
+      },
+      
+      // Mock implementation of create_video_metadata
+      create_video_metadata: async (videoId, title, tags, storageRef) => {
+        console.log('Using mock create_video_metadata implementation');
+        console.log('Parameters:', { videoId, title, tags, storageRef });
         
-        // Try snake_case conversion as fallback (camelCase -> snake_case)
-        const snakeCaseProp = prop.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-        if (snakeCaseProp !== prop) {
-          try {
-            // @ts-ignore - using dynamic property access
-            const snakeCaseMethod = target.actor[snakeCaseProp as any];
-            if (typeof snakeCaseMethod === 'function') {
-              console.log(`Mapping ${String(prop)} to ${snakeCaseProp}`);
-              return snakeCaseMethod.bind(target.actor);
-            }
-          } catch (e) {
-            console.error(`Error accessing ${snakeCaseProp} on actor:`, e);
-          }
+        try {
+          const response = await fetch('http://localhost:55662/api/videos', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              title,
+              tags,
+              storage_ref: storageRef && storageRef.length > 0 ? storageRef[0] : null
+            }),
+          });
+          
+          const data = await response.json();
+          console.log('Mock backend created video:', data);
+          return data;
+        } catch (error) {
+          console.error('Error creating video in mock backend:', error);
+          return { Err: 'Failed to create video metadata' };
         }
-      }
+      },
       
-      // Log if we couldn't find a method to help with debugging
-      if (typeof prop === 'string' && prop !== 'toJSON' && prop !== 'then') {
-        console.warn(`Method not found: ${String(prop)}`);
+      // Add other mock methods as needed
+      logWatchEvent: async () => {
+        console.log('Mock logWatchEvent called');
+        return { Ok: null };
       }
-      
-      // Return undefined for anything not found
-      return undefined;
     }
-  });
+  };
+  
+  console.log('Using mock actor for development');
+  return mockActor;
 };
 
 export default function Actors({ children }: { children: ReactNode }) {

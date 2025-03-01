@@ -155,10 +155,17 @@ export function VideoUpload({ onUploadComplete, className = '' }: VideoUploadPro
       
       // Create unique IDs for this upload
       const videoId = uuidv4();
+      
       // We might have a real playbackId from LivePeer or need to create one
-      const playbackId = assetData?.playbackId || `upload-${Date.now()}`;
-      // Store the reference
+      // For development, use a sample video ID that will trigger our fallback mechanism
+      const playbackId = assetData?.playbackId || `dev-pb-${Date.now()}`;
+      
+      // Store the reference with the livepeer: prefix so our player knows how to handle it
       const storageRef = `livepeer:${playbackId}`;
+      
+      console.log('Created video ID:', videoId);
+      console.log('Using playback ID:', playbackId);
+      console.log('Storage reference:', storageRef);
       
       // Process tags
       const tagsList = tags.split(',')

@@ -138,15 +138,27 @@ export function VideoGrid({ tag, className = '', onVideoSelect }: VideoGridProps
     
     const storageRefValue = video.storage_ref[0];
     
-    // If LivePeer, use a generic thumbnail for now
-    // The Livepeer CDN paths aren't working correctly
+    // If LivePeer, use a sample thumbnail based on video ID
     if (storageRefValue.startsWith('livepeer:')) {
-      // Instead of trying to use the actual thumbnail URL which isn't working:
-      // const playbackId = storageRefValue.substring(9);
-      // return `https://livepeercdn.com/asset/${playbackId}/thumbnail.jpg`;
+      // Use sample thumbnails from a video library
+      const sampleThumbnails = [
+        'https://storage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg',
+        'https://storage.googleapis.com/gtv-videos-bucket/sample/images/ElephantsDream.jpg',
+        'https://storage.googleapis.com/gtv-videos-bucket/sample/images/ForBiggerBlazes.jpg',
+        'https://storage.googleapis.com/gtv-videos-bucket/sample/images/ForBiggerEscapes.jpg',
+        'https://storage.googleapis.com/gtv-videos-bucket/sample/images/ForBiggerFun.jpg',
+        'https://storage.googleapis.com/gtv-videos-bucket/sample/images/ForBiggerJoyrides.jpg',
+        'https://storage.googleapis.com/gtv-videos-bucket/sample/images/ForBiggerMeltdowns.jpg',
+        'https://storage.googleapis.com/gtv-videos-bucket/sample/images/Sintel.jpg',
+        'https://storage.googleapis.com/gtv-videos-bucket/sample/images/SubaruOutbackOnStreetAndDirt.jpg',
+        'https://storage.googleapis.com/gtv-videos-bucket/sample/images/TearsOfSteel.jpg'
+      ];
       
-      // Use a placeholder gradient or default image instead
-      return '/header.png';
+      // Use a hash of the video ID to select a consistent thumbnail
+      const hash = video.video_id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const index = hash % sampleThumbnails.length;
+      
+      return sampleThumbnails[index];
     }
     
     return '/default-thumbnail.jpg';

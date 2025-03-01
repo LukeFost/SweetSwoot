@@ -182,6 +182,28 @@ export function VideoFeed({ tag, className = '', onVideoSelect }: VideoFeedProps
   // Show video feed
   const activeVideo = videos[activeVideoIndex];
   
+  // Function to get sample video URL based on video ID
+  const getSampleVideoUrl = (videoId: string) => {
+    const sampleVideos = [
+      'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      'https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+      'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+      'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+      'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+      'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+      'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+      'https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
+      'https://storage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4',
+      'https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4'
+    ];
+    
+    // Use a hash of the video ID to select a consistent video
+    const hash = videoId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const index = hash % sampleVideos.length;
+    
+    return sampleVideos[index];
+  };
+  
   return (
     <div className={`relative h-full ${className}`}>
       {/* Current Video */}
