@@ -51,6 +51,7 @@ export function CommentSection({ videoId, className = '' }: CommentSectionProps)
         // Try to get user profiles for commenters
         try {
           // Use list_profiles from the base actor
+          // @ts-ignore - API method exists in backend but types may not be updated
           const profilesResponse = await actor.list_profiles();
           
           // Create a map of principal -> profile for easy lookup

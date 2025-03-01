@@ -11,7 +11,7 @@ use crate::{
 
 /// Records a tip transaction for a video
 #[update]
-async fn record_tip(
+pub async fn record_tip(
     video_id: String,
     amount: u64,
     tx_hash: String
@@ -73,7 +73,7 @@ async fn record_tip(
 
 /// Gets tips for a specific video
 #[query]
-fn get_tips_for_video(video_id: String) -> Vec<TipRecord> {
+pub fn get_tips_for_video(video_id: String) -> Vec<TipRecord> {
     TIP_RECORDS.with(|tips| {
         tips.borrow()
             .get(&video_id)
@@ -84,7 +84,7 @@ fn get_tips_for_video(video_id: String) -> Vec<TipRecord> {
 
 /// Gets all tips sent by the calling user
 #[query]
-async fn get_my_sent_tips() -> Result<Vec<TipRecord>, String> {
+pub async fn get_my_sent_tips() -> Result<Vec<TipRecord>, String> {
     let my_addr = get_address().await?;
     
     Ok(TIP_RECORDS.with(|tips| {
@@ -98,7 +98,7 @@ async fn get_my_sent_tips() -> Result<Vec<TipRecord>, String> {
 
 /// Gets all tips received by the calling user
 #[query]
-async fn get_my_received_tips() -> Result<Vec<TipRecord>, String> {
+pub async fn get_my_received_tips() -> Result<Vec<TipRecord>, String> {
     let my_addr = get_address().await?;
     
     Ok(TIP_RECORDS.with(|tips| {

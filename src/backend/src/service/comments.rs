@@ -5,7 +5,7 @@ use crate::{comment::{Comment, CommentList}, COMMENTS, VIDEOS};
 
 /// Posts a comment on a video
 #[update]
-fn post_comment(video_id: String, text: String) -> Result<Comment, String> {
+pub fn post_comment(video_id: String, text: String) -> Result<Comment, String> {
     // Verify the video exists
     VIDEOS.with(|videos| {
         if !videos.borrow().contains_key(&video_id) {
@@ -46,7 +46,7 @@ fn post_comment(video_id: String, text: String) -> Result<Comment, String> {
 
 /// Gets comments for a video
 #[query]
-fn get_comments(video_id: String) -> Vec<Comment> {
+pub fn get_comments(video_id: String) -> Vec<Comment> {
     COMMENTS.with(|comments| {
         comments
             .borrow()
@@ -58,7 +58,7 @@ fn get_comments(video_id: String) -> Vec<Comment> {
 
 /// Gets all comments by the calling user
 #[query]
-fn get_my_comments() -> Vec<Comment> {
+pub fn get_my_comments() -> Vec<Comment> {
     let caller = ic_cdk::caller();
     
     COMMENTS.with(|comments| {
@@ -73,7 +73,7 @@ fn get_my_comments() -> Vec<Comment> {
 
 /// Deletes a comment (only by the commenter)
 #[update]
-fn delete_comment(video_id: String, timestamp: u64) -> Result<(), String> {
+pub fn delete_comment(video_id: String, timestamp: u64) -> Result<(), String> {
     let caller = ic_cdk::caller();
     
     COMMENTS.with(|comments| {

@@ -6,7 +6,7 @@ use crate::{video_metadata::VideoMetadata, VIDEOS};
 
 /// Creates a new video metadata entry
 #[update]
-fn create_video_metadata(
+pub fn create_video_metadata(
     video_id: String,
     title: String,
     tags: Vec<String>,
@@ -41,7 +41,7 @@ fn create_video_metadata(
 
 /// Returns a video's metadata by ID
 #[query]
-fn get_video_metadata(video_id: String) -> Result<VideoMetadata, String> {
+pub fn get_video_metadata(video_id: String) -> Result<VideoMetadata, String> {
     VIDEOS.with(|videos| {
         videos
             .borrow()
@@ -52,7 +52,7 @@ fn get_video_metadata(video_id: String) -> Result<VideoMetadata, String> {
 
 /// Lists all videos
 #[query]
-fn list_all_videos() -> Vec<VideoMetadata> {
+pub fn list_all_videos() -> Vec<VideoMetadata> {
     VIDEOS.with(|videos| {
         videos
             .borrow()
@@ -64,7 +64,7 @@ fn list_all_videos() -> Vec<VideoMetadata> {
 
 /// Lists videos by tag
 #[query]
-fn list_videos_by_tag(tag: String) -> Vec<VideoMetadata> {
+pub fn list_videos_by_tag(tag: String) -> Vec<VideoMetadata> {
     VIDEOS.with(|videos| {
         videos
             .borrow()
@@ -77,7 +77,7 @@ fn list_videos_by_tag(tag: String) -> Vec<VideoMetadata> {
 
 /// Lists videos by uploader
 #[query]
-fn list_videos_by_uploader(uploader: Principal) -> Vec<VideoMetadata> {
+pub fn list_videos_by_uploader(uploader: Principal) -> Vec<VideoMetadata> {
     VIDEOS.with(|videos| {
         videos
             .borrow()
@@ -90,7 +90,7 @@ fn list_videos_by_uploader(uploader: Principal) -> Vec<VideoMetadata> {
 
 /// Updates a video's metadata
 #[update]
-fn update_video_metadata(
+pub fn update_video_metadata(
     video_id: String,
     title: Option<String>,
     tags: Option<Vec<String>>,
@@ -130,7 +130,7 @@ fn update_video_metadata(
 
 /// Deletes a video (only by uploader)
 #[update]
-fn delete_video(video_id: String) -> Result<(), String> {
+pub fn delete_video(video_id: String) -> Result<(), String> {
     VIDEOS.with(|videos| {
         let mut videos_map = videos.borrow_mut();
         

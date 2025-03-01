@@ -52,6 +52,3 @@ lerna-debug.log*
 Makefile.prod
 
 info/
-pnpm-lock.yaml
-tsconfig.app.tsbuildinfo
-tsconfig.app.tsbuildinfo

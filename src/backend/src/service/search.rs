@@ -1,7 +1,8 @@
 use crate::{VideoMetadata, VIDEOS};
-use candid::Principal;
+use ic_cdk::query;
 
 /// Search for videos matching the given query in title or tags
+#[query]
 pub fn search_videos(
     query: String,
     limit: Option<u32>,
@@ -42,6 +43,7 @@ pub fn search_videos(
 }
 
 /// Search for videos matching all specified tags
+#[query]
 pub fn search_videos_by_tags(
     tags: Vec<String>,
     limit: Option<u32>,

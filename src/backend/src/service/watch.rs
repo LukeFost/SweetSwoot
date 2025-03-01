@@ -5,7 +5,7 @@ use crate::{watch_event::{WatchEvent, WatchEventList}, WATCH_LOG, VIDEOS};
 
 /// Logs a watch event for a video
 #[update]
-fn log_watch_event(
+pub fn log_watch_event(
     video_id: String,
     watch_duration_sec: u32,
     liked: bool,
@@ -53,7 +53,7 @@ fn log_watch_event(
 
 /// Returns all watch events for a specific video
 #[query]
-fn get_watch_events(video_id: String) -> Vec<WatchEvent> {
+pub fn get_watch_events(video_id: String) -> Vec<WatchEvent> {
     WATCH_LOG.with(|log| {
         log.borrow()
             .get(&video_id)
@@ -64,7 +64,7 @@ fn get_watch_events(video_id: String) -> Vec<WatchEvent> {
 
 /// Returns watch events for the calling user
 #[query]
-fn get_my_watch_events() -> Vec<WatchEvent> {
+pub fn get_my_watch_events() -> Vec<WatchEvent> {
     let caller = ic_cdk::caller();
     
     WATCH_LOG.with(|log| {
@@ -78,7 +78,7 @@ fn get_my_watch_events() -> Vec<WatchEvent> {
 
 /// Returns analytics for a specific video
 #[query]
-fn get_video_analytics(video_id: String) -> Result<VideoAnalytics, String> {
+pub fn get_video_analytics(video_id: String) -> Result<VideoAnalytics, String> {
     // Verify the video exists
     VIDEOS.with(|videos| {
         if !videos.borrow().contains_key(&video_id) {

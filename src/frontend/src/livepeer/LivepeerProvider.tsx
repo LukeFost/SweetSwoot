@@ -25,15 +25,15 @@ export const createLivepeerClient = (apiKey: string): LivepeerClient => ({
 
   // Helper to make API requests
   async request(endpoint: string, options: RequestInit = {}) {
-    const headers = {
+    // Create headers object
+    const headers: Record<string, string> = {
       'Authorization': `Bearer ${this.apiKey}`,
-      'Content-Type': 'application/json',
-      ...options.headers,
+      ...options.headers as Record<string, string>,
     };
-
-    // Remove Content-Type header for FormData
-    if (options.body instanceof FormData) {
-      delete headers['Content-Type'];
+    
+    // Only add Content-Type for non-FormData requests
+    if (!(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
     }
 
     const response = await fetch(`${this.baseUrl}${endpoint}`, {

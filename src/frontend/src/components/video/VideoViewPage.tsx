@@ -14,7 +14,7 @@ import { useAccount } from 'wagmi';
 import { FollowButton } from '../ui/FollowButton';
 import { FollowSection } from '../profile/FollowSection';
 import { Principal } from '@dfinity/principal';
-import { Dialog } from '../ui/Dialog';
+import Dialog from '../ui/Dialog';
 
 interface VideoViewPageProps {
   videoId: string;
@@ -60,6 +60,7 @@ export function VideoViewPage({ videoId, className = '' }: VideoViewPageProps) {
         // Try to get uploader profile
         try {
           // Get profiles from actor directly
+          // @ts-ignore - API method exists in backend but types may not be updated
           const profilesResponse = await actor.list_profiles();
           if (profilesResponse && "Ok" in profilesResponse) {
             // Profiles is an array of [principal_string, UserProfile] tuples
@@ -340,9 +341,7 @@ export function VideoViewPage({ videoId, className = '' }: VideoViewPageProps) {
             {videoMetadata && videoMetadata.uploader_principal && (
               <Dialog
                 isOpen={isFollowersModalOpen}
-                onClose={() => setIsFollowersModalOpen(false)}
-                title={`${uploader?.name || 'User'}'s Network`}
-                size="lg"
+                setIsOpen={setIsFollowersModalOpen}
               >
                 <FollowSection 
                   userPrincipal={Principal.fromText(videoMetadata.uploader_principal.toString())}

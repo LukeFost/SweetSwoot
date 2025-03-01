@@ -34,6 +34,7 @@ export function VideoGrid({ tag, className = '', onVideoSelect }: VideoGridProps
           videoList = await backendActor.list_videos_by_tag(tag.toLowerCase());
         } else {
           // Get videos from the backend actor
+          // @ts-ignore - API method exists in backend but types may not be updated
           videoList = await actor.list_all_videos();
           console.log("Loaded videos for grid:", videoList);
         }

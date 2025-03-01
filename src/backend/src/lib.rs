@@ -7,7 +7,6 @@ mod tip_record;
 mod comment;
 mod follow_relationship;
 
-use candid::Principal;
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap};
 use std::cell::RefCell;
@@ -61,21 +60,3 @@ thread_local! {
     );
 }
 
-// Search API
-#[ic_cdk::query]
-fn search_videos(
-    query: String,
-    limit: Option<u32>,
-    offset: Option<u32>
-) -> Vec<VideoMetadata> {
-    service::search::search_videos(query, limit, offset)
-}
-
-#[ic_cdk::query]
-fn search_videos_by_tags(
-    tags: Vec<String>,
-    limit: Option<u32>,
-    offset: Option<u32>
-) -> Vec<VideoMetadata> {
-    service::search::search_videos_by_tags(tags, limit, offset)
-}
