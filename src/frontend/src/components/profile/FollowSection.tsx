@@ -45,8 +45,8 @@ export function FollowSection({
         
         // Fetch followers and following in parallel
         const [followersList, followingList] = await Promise.all([
-          backendActor.get_followers(userPrincipal),
-          backendActor.get_following(userPrincipal)
+          backendActor.getFollowers(userPrincipal),
+          backendActor.getFollowing(userPrincipal)
         ]);
         
         setFollowers(followersList);
@@ -54,7 +54,7 @@ export function FollowSection({
         
         // Fetch all profiles and map them to followers/following
         try {
-          const profilesResult = await backendActor.list_profiles();
+          const profilesResult = await backendActor.listProfiles();
           if ('Ok' in profilesResult) {
             const profiles = profilesResult.Ok.map(([_, profile]: [string, UserProfile]) => ({
               ...profile,

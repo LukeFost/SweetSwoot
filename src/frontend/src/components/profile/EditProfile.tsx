@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleNotch } from "@fortawesome/free-solid-svg-icons";
 import toast from "react-hot-toast";
 import { useActor } from "../../ic/Actors";
+import { CustomFundWallet } from "../../cdp/CustomFundWallet";
 
 type EditProfileProps = {
   className?: string;
@@ -122,6 +123,14 @@ export default function EditProfile({
             {submitText}
           </Button>
         </form>
+
+        <div className="w-full mt-8 border-t pt-6">
+          <h3 className="text-xl font-semibold mb-4 text-center">Fund Your Wallet</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4 text-center">
+            Need to add funds to your wallet to tip creators?
+          </p>
+          <CustomFundWallet />
+        </div>
       </div>
     </div>
   );

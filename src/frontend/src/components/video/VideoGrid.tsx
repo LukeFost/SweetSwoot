@@ -31,11 +31,26 @@ export function VideoGrid({ tag, className = '', onVideoSelect }: VideoGridProps
         const backendActor = actor as unknown as BackendExtended;
         
         if (tag) {
-          videoList = await backendActor.list_videos_by_tag(tag.toLowerCase());
+          try {
+            console.log('Searching videos by tag:', tag);
+            // @ts-ignore - Our proxy handles this correctly
+            videoList = await actor.list_videos_by_tag(tag.toLowerCase());
+            console.log(`Found ${videoList.length} videos with tag: ${tag}`);
+          } catch (err) {
+            console.error(`Error searching for videos with tag ${tag}:`, err);
+            videoList = [];
+          }
         } else {
-          // Get videos from the backend actor
-          // @ts-ignore - API method exists in backend but types may not be updated
-          videoList = await actor.list_all_videos();
+          // Try using our new proxied actor that handles the actor.actor nesting
+          try {
+            console.log('Getting all videos in VideoGrid');
+            // @ts-ignore - Our proxy handles this correctly
+            videoList = await actor.list_all_videos();
+            console.log("Successfully loaded videos:", videoList);
+          } catch (err) {
+            console.error("Error loading videos:", err);
+            videoList = [];
+          }
           console.log("Loaded videos for grid:", videoList);
         }
         

@@ -47,7 +47,7 @@ export function FollowButton({
         // Skip if we're viewing our own profile
         if (myPrincipal.toString() === userPrincipal.toString()) return;
         
-        const following = await backendActor.is_following(
+        const following = await backendActor.isFollowing(
           myPrincipal,
           userPrincipal
         );
@@ -84,7 +84,7 @@ export function FollowButton({
       
       // Call appropriate API based on current follow state
       if (isFollowing) {
-        const result = await backendActor.unfollow_user(userPrincipal);
+        const result = await backendActor.unfollowUser(userPrincipal);
         if ('Err' in result) {
           // Revert on error
           setIsFollowing(previousState);
@@ -94,7 +94,7 @@ export function FollowButton({
           setError(result.Err);
         }
       } else {
-        const result = await backendActor.follow_user(userPrincipal);
+        const result = await backendActor.followUser(userPrincipal);
         if ('Err' in result) {
           // Revert on error
           setIsFollowing(previousState);

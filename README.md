@@ -1,13 +1,22 @@
-Overview
+# ShawtyFormVideo
 
-This boilerplate:
-	1.	Uses Rust for the backend canister (backend).
-	2.	Uses React + Vite + TypeScript for the frontend (frontend).
-	3.	Integrates Sign In With Ethereum (SIWE) functionality via the ic_siwe_provider canister and the ic-use-siwe-identity React hook.
-	4.	Demonstrates how to authenticate Ethereum wallets and map them to principals on the Internet Computer so that users can interact with IC canisters (the backend) while being logged in with Metamask, WalletConnect, etc.
-	5.	Comes pre-configured with TailwindCSS, Wagmi, viem, React Query, etc.
+A short-form video platform built on the Internet Computer with Base chain tipping and onramp integration.
 
-If you want to adapt this code for your ShawtyFormVideo (or similarly named) project, simply follow the steps below.
+## Overview
+
+ShawtyFormVideo is a modern video platform that allows users to:
+1. Upload and watch short-form videos via LivePeer integration
+2. Tip content creators with cryptocurrency on Base chain
+3. Acquire cryptocurrency directly in-app via Coinbase Developer Platform onramp
+4. Sign in with Ethereum (SIWE) for a seamless web3 experience
+5. Follow creators, comment on videos, and build a social network
+
+The platform is built using:
+1. Rust for the backend canister on Internet Computer
+2. React + Vite + TypeScript for the frontend
+3. LivePeer for video storage and streaming
+4. Coinbase Developer Platform for cryptocurrency onramp
+5. Base chain for tipping transactions
 
 1. Clone the Repository & Rename
 	1.	Clone the code:

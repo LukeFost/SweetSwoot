@@ -36,7 +36,7 @@ export function TipHistory({ videoId, className = '' }: TipHistoryProps) {
       try {
         setLoading(true);
         const backendActor = actor as unknown as BackendExtended;
-        const tipRecords = await backendActor.get_tips_for_video(videoId);
+        const tipRecords = await backendActor.getTipsForVideo(videoId);
         
         // Sort by timestamp (newest first)
         tipRecords.sort((a, b) => Number(b.timestamp) - Number(a.timestamp));

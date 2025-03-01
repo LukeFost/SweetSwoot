@@ -46,12 +46,12 @@ export function VideoViewPage({ videoId, className = '' }: VideoViewPageProps) {
     // Fetch video metadata
     const fetchVideoData = async () => {
       try {
-        const metadata = await backendActor.get_video_metadata(videoId);
+        const metadata = await backendActor.getVideoMetadata(videoId);
         setVideoMetadata(metadata);
 
         // Get video analytics
         try {
-          const analytics = await backendActor.get_video_analytics(videoId);
+          const analytics = await backendActor.getVideoAnalytics(videoId);
           setVideoAnalytics(analytics);
         } catch (err) {
           console.error('Error fetching video analytics:', err);
@@ -61,7 +61,7 @@ export function VideoViewPage({ videoId, className = '' }: VideoViewPageProps) {
         try {
           // Get profiles from actor directly
           // @ts-ignore - API method exists in backend but types may not be updated
-          const profilesResponse = await actor.list_profiles();
+          const profilesResponse = await actor.listProfiles();
           if (profilesResponse && "Ok" in profilesResponse) {
             // Profiles is an array of [principal_string, UserProfile] tuples
             const profiles = profilesResponse.Ok;
@@ -78,12 +78,12 @@ export function VideoViewPage({ videoId, className = '' }: VideoViewPageProps) {
                 const uploaderPrincipal = Principal.fromText(metadata.uploader_principal.toString());
                 
                 // Get followers count
-                const followers = await backendActor.get_followers(uploaderPrincipal);
+                const followers = await backendActor.getFollowers(uploaderPrincipal);
                 setFollowersCount(followers.length);
                 
                 // Check follow status if user is authenticated
                 if (identity) {
-                  const isFollowingResult = await backendActor.is_following(
+                  const isFollowingResult = await backendActor.isFollowing(
                     identity.getPrincipal(),
                     uploaderPrincipal
                   );
@@ -323,7 +323,7 @@ export function VideoViewPage({ videoId, className = '' }: VideoViewPageProps) {
                   // Convert amount to bigint with 18 decimals (ETH)
                   const amountInWei = BigInt(parseFloat(amount) * 10**18);
                   
-                  await backendActor.record_tip(videoId, amountInWei, txHash);
+                  await backendActor.recordTip(videoId, amountInWei, txHash);
                   
                   // Close modal after successful recording
                   setIsTipModalOpen(false);

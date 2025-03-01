@@ -31,11 +31,41 @@ export function VideoFeed({ tag, className = '', onVideoSelect }: VideoFeedProps
         const backendActor = actor as unknown as BackendExtended;
         
         if (tag) {
-          videoList = await backendActor.list_videos_by_tag(tag);
+          try {
+            // First try the backendActor approach
+            try {
+              videoList = await backendActor.listVideosByTag(tag);
+            } catch (directError) {
+              console.log("Direct tag search failed in VideoFeed:", directError);
+              
+              // Try with nested actor if available
+              if (actor && actor.actor) {
+                try {
+                  // @ts-ignore
+                  videoList = await actor.actor.list_videos_by_tag(tag);
+                } catch (nestedError) {
+                  console.error("Nested actor tag search failed in VideoFeed:", nestedError);
+                  videoList = [];
+                }
+              } else {
+                videoList = [];
+              }
+            }
+          } catch (err) {
+            console.error("All tag search methods failed in VideoFeed:", err);
+            videoList = [];
+          }
         } else {
-          // Get videos from the backend actor
-          // @ts-ignore - API method exists in backend but types may not be updated
-          videoList = await actor.list_all_videos();
+          // Try using our new proxied actor that handles the actor.actor nesting
+          try {
+            console.log('Getting all videos in VideoFeed');
+            // @ts-ignore - Our proxy handles this correctly
+            videoList = await actor.list_all_videos();
+            console.log("Successfully loaded videos in VideoFeed:", videoList);
+          } catch (err) {
+            console.error("Error loading videos in VideoFeed:", err);
+            videoList = [];
+          }
           console.log("Loaded videos:", videoList);
         }
         

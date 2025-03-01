@@ -4,6 +4,7 @@ import PrincipalPill from "../PrincipalPill";
 import { UserProfile } from "../../../../backend/declarations/backend.did";
 import { faUser } from "@fortawesome/free-solid-svg-icons";
 import { useState } from "react";
+import { FundWallet } from "../../cdp/FundWallet";
 
 type ProfileCardProps = {
   principal: string;
@@ -39,6 +40,7 @@ export default function ProfileCard({ principal, profile }: ProfileCardProps) {
       </div>
       <PrincipalPill className="w-full bg-zinc-700" principal={principal} />
       <AddressPill address={profile.evm_address} className="w-full bg-zinc-700" />
+      <FundWallet className="w-full mt-2" />
     </div>
   );
 }

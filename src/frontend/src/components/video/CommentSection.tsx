@@ -39,7 +39,7 @@ export function CommentSection({ videoId, className = '' }: CommentSectionProps)
 
     const fetchComments = async () => {
       try {
-        const fetchedComments = await backendActor.get_comments(videoId);
+        const fetchedComments = await backendActor.getComments(videoId);
         
         // Sort by timestamp (newest first)
         fetchedComments.sort((a: Comment, b: Comment) => 
@@ -50,9 +50,9 @@ export function CommentSection({ videoId, className = '' }: CommentSectionProps)
         
         // Try to get user profiles for commenters
         try {
-          // Use list_profiles from the base actor
+          // Use listProfiles from the base actor
           // @ts-ignore - API method exists in backend but types may not be updated
-          const profilesResponse = await actor.list_profiles();
+          const profilesResponse = await actor.listProfiles();
           
           // Create a map of principal -> profile for easy lookup
           const profileMap: Record<string, any> = {};
@@ -92,7 +92,7 @@ export function CommentSection({ videoId, className = '' }: CommentSectionProps)
     
     try {
       const backendActor = actor as unknown as BackendExtended;
-      const newComment = await backendActor.post_comment(videoId, newCommentText.trim());
+      const newComment = await backendActor.postComment(videoId, newCommentText.trim());
       
       // Add to comments list
       setComments(prev => [newComment, ...prev]);

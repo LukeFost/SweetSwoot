@@ -22,6 +22,11 @@
     "vite"
   ],
   "type": "module",
+  "pnpm": {
+    "overrides": {
+      "viem": "^2.23.0"
+    }
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -29,6 +34,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@coinbase/onchainkit": "^0.37.5",
     "@dfinity/agent": "^2.2.0",
     "@dfinity/candid": "^2.2.0",
     "@dfinity/identity": "^2.2.0",
@@ -49,9 +55,10 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.4.1",
+    "react-router-dom": "^7.2.0",
     "tailwind-merge": "^2.0.0",
     "uuid": "^11.1.0",
-    "viem": "2.19.7",
+    "viem": "^2.23.0",
     "wagmi": "2.12.5"
   },
   "devDependencies": {

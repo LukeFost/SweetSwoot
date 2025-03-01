@@ -5,6 +5,7 @@ import { faEthereum } from '@fortawesome/free-brands-svg-icons';
 import { useAccount, useBalance, useSendTransaction } from 'wagmi';
 import { parseEther } from 'viem';
 import { twMerge } from 'tailwind-merge';
+import { FundWallet } from '../../cdp/FundWallet';
 
 interface TipModalProps {
   isOpen: boolean;
@@ -221,6 +222,16 @@ export function TipModal({
                 )}
               </div>
             </div>
+            
+            {/* Need funds section */}
+            {parseFloat(balance?.formatted || '0') < 0.01 && (
+              <div className="mb-6">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Need to add funds to your wallet?
+                </p>
+                <FundWallet className="mb-2" />
+              </div>
+            )}
             
             {/* Send button */}
             <button

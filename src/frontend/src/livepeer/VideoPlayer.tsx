@@ -42,7 +42,7 @@ export function VideoPlayer({
     // Cast the actor to our extended type
     const backendActor = actor as unknown as BackendExtended;
 
-    backendActor.get_video_metadata(videoId)
+    backendActor.getVideoMetadata(videoId)
       .then((response: any) => {
         if ('Ok' in response) {
           const metadata = response.Ok;
@@ -102,7 +102,7 @@ export function VideoPlayer({
     try {
       // Cast the actor to our extended type
       const backendActor = actor as unknown as BackendExtended;
-      await backendActor.log_watch_event(videoId, duration, liked, completed);
+      await backendActor.logWatchEvent(videoId, duration, liked, completed);
     } catch (err) {
       console.error('Failed to log watch event:', err);
     }

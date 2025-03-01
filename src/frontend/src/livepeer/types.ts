@@ -41,25 +41,25 @@ export interface UserProfile {
 
 // Extended backend service interface to make TypeScript happy
 export interface BackendExtended {
-  get_video_metadata: (videoId: string) => Promise<any>;
-  create_video_metadata: (videoId: string, title: string, tags: string[], storageRef: string[]) => Promise<any>;
-  // Note: list_all_videos is directly available on the actor object; don't use it here
-  list_videos_by_tag: (tag: string) => Promise<any[]>;
-  log_watch_event: (videoId: string, duration: number, liked: boolean, completed: boolean) => Promise<any>;
+  getVideoMetadata: (videoId: string) => Promise<any>;
+  createVideoMetadata: (videoId: string, title: string, tags: string[], storageRef: string[]) => Promise<any>;
+  // Note: listAllVideos is directly available on the actor object; don't use it here
+  listVideosByTag: (tag: string) => Promise<any[]>;
+  logWatchEvent: (videoId: string, duration: number, liked: boolean, completed: boolean) => Promise<any>;
   // Additional backend methods needed for our new components
-  get_comments: (videoId: string) => Promise<any[]>;
-  post_comment: (videoId: string, text: string) => Promise<any>;
-  list_profiles: () => Promise<any>; // Changed from list_all_profiles which doesn't exist
-  get_video_analytics: (videoId: string) => Promise<any>;
+  getComments: (videoId: string) => Promise<any[]>;
+  postComment: (videoId: string, text: string) => Promise<any>;
+  listProfiles: () => Promise<any>; // Changed from list_all_profiles which doesn't exist
+  getVideoAnalytics: (videoId: string) => Promise<any>;
   // Tip-related methods
-  record_tip: (videoId: string, amount: bigint, txHash: string) => Promise<any>;
-  get_tips_for_video: (videoId: string) => Promise<any[]>;
-  get_my_sent_tips: () => Promise<any[]>;
-  get_my_received_tips: () => Promise<any[]>;
+  recordTip: (videoId: string, amount: bigint, txHash: string) => Promise<any>;
+  getTipsForVideo: (videoId: string) => Promise<any[]>;
+  getMySentTips: () => Promise<any[]>;
+  getMyReceivedTips: () => Promise<any[]>;
   // Follow-related methods
-  follow_user: (principal: Principal) => Promise<{ Ok: null } | { Err: string }>;
-  unfollow_user: (principal: Principal) => Promise<{ Ok: null } | { Err: string }>;
-  get_followers: (principal: Principal) => Promise<Principal[]>;
-  get_following: (principal: Principal) => Promise<Principal[]>;
-  is_following: (follower: Principal, followed: Principal) => Promise<boolean>;
+  followUser: (principal: Principal) => Promise<{ Ok: null } | { Err: string }>;
+  unfollowUser: (principal: Principal) => Promise<{ Ok: null } | { Err: string }>;
+  getFollowers: (principal: Principal) => Promise<Principal[]>;
+  getFollowing: (principal: Principal) => Promise<Principal[]>;
+  isFollowing: (follower: Principal, followed: Principal) => Promise<boolean>;
 }

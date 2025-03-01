@@ -61,7 +61,7 @@ export function VideoUpload({ onUploadComplete, className = '' }: VideoUploadPro
         // Cast the actor to our extended type
         const backendActor = actor as unknown as BackendExtended;
         
-        const response = await backendActor.create_video_metadata(videoId, title, tagsList, [storageRef]);
+        const response = await backendActor.createVideoMetadata(videoId, title, tagsList, [storageRef]);
         
         if ('Ok' in response) {
           onUploadComplete?.(videoId, playbackId);
