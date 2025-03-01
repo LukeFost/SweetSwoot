@@ -155,7 +155,7 @@ export function VideoGrid({ tag, className = '', onVideoSelect }: VideoGridProps
       ];
       
       // Use a hash of the video ID to select a consistent thumbnail
-      const hash = video.video_id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const hash = video.video_id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
       const index = hash % sampleThumbnails.length;
       
       return sampleThumbnails[index];

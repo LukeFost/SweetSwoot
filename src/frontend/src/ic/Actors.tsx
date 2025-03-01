@@ -22,13 +22,14 @@ const useActorBase = createUseActorHook<_SERVICE>(actorContext);
 
 // Create a wrapper that automatically accesses the nested actor
 export const useActor = () => {
-  const actor = useActorBase();
+  // We're not using the real actor in development mode
+  const _actor = useActorBase();
   
   // Create a mock actor for development
   const mockActor = {
     actor: {
       // Mock implementation of list_all_videos
-      list_all_videos: async () => {
+      list_all_videos: async (): Promise<any[]> => {
         console.log('Using mock list_all_videos implementation');
         try {
           const response = await fetch('http://localhost:55662/api/videos');
@@ -42,7 +43,7 @@ export const useActor = () => {
       },
       
       // Mock implementation of list_videos_by_tag
-      list_videos_by_tag: async (tag) => {
+      list_videos_by_tag: async (tag: string): Promise<any[]> => {
         console.log('Using mock list_videos_by_tag implementation with tag:', tag);
         try {
           const response = await fetch(`http://localhost:55662/api/videos/tag/${tag}`);
@@ -56,7 +57,7 @@ export const useActor = () => {
       },
       
       // Mock implementation of get_video_metadata
-      getVideoMetadata: async (videoId) => {
+      getVideoMetadata: async (videoId: string): Promise<any> => {
         console.log('Using mock getVideoMetadata implementation with ID:', videoId);
         try {
           const response = await fetch(`http://localhost:55662/api/videos/${videoId}`);
@@ -70,7 +71,12 @@ export const useActor = () => {
       },
       
       // Mock implementation of create_video_metadata
-      create_video_metadata: async (videoId, title, tags, storageRef) => {
+      create_video_metadata: async (
+        videoId: string, 
+        title: string, 
+        tags: string[], 
+        storageRef: string[] | []
+      ): Promise<any> => {
         console.log('Using mock create_video_metadata implementation');
         console.log('Parameters:', { videoId, title, tags, storageRef });
         
@@ -97,7 +103,7 @@ export const useActor = () => {
       },
       
       // Add other mock methods as needed
-      logWatchEvent: async () => {
+      logWatchEvent: async (): Promise<{ Ok: null }> => {
         console.log('Mock logWatchEvent called');
         return { Ok: null };
       }
