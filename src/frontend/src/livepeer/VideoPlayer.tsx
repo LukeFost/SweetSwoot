@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useActor } from '../ic/Actors';
 import { useSiwe } from 'ic-siwe-js/react';
-import { livepeerClient } from './LivepeerProvider';
+import { useLivepeer } from './LivepeerProvider';
 import { BackendExtended } from './types';
 
 interface VideoPlayerProps {
@@ -48,7 +48,7 @@ export function VideoPlayer({
           const metadata = response.Ok;
           
           // Extract playback ID from storage_ref
-          if (metadata.storage_ref && metadata.storage_ref.length > 0) {
+          if (metadata.storage_ref && metadata.storage_ref[0]) {
             const storageRef = metadata.storage_ref[0];
             if (storageRef.startsWith('livepeer:')) {
               setPlaybackId(storageRef.substring(9));
@@ -141,6 +141,9 @@ export function VideoPlayer({
     };
   }, [watchDuration, liked, isCompleted, videoId, identity]);
 
+  // Get the livepeer client at the component level
+  const livepeerClient = useLivepeer();
+  
   // Get playback URL
   useEffect(() => {
     if (!playbackId) return;
@@ -149,9 +152,11 @@ export function VideoPlayer({
     const getPlaybackInfo = async () => {
       try {
         setIsLoading(true);
+        console.log('Getting playback info for ID:', playbackId);
         
-        // Try to get playback info from Livepeer API
+        // Use the client from the component level
         const playbackInfo = await livepeerClient.getPlaybackInfo(playbackId);
+        console.log('Playback info received:', playbackInfo);
         
         if (videoRef.current) {
           // Check if we have received source information
@@ -220,7 +225,7 @@ export function VideoPlayer({
     };
     
     getPlaybackInfo();
-  }, [playbackId]);
+  }, [playbackId, livepeerClient]);
 
   return (
     <div className={`${className}`}>

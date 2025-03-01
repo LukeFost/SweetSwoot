@@ -106,7 +106,7 @@ export default function DesktopLayout({ onLoginClick, isAuthenticated }: Desktop
       {/* Left Sidebar */}
       <div className="flex flex-col w-64 h-full p-4 border-r border-zinc-700 bg-zinc-850">
         <div className="flex items-center justify-center h-12 mb-6">
-          <span className="text-2xl font-bold">ShawtyForm</span>
+          <span className="text-2xl font-bold">SweetSwoot</span>
         </div>
         
         <nav className="flex-grow mb-6 space-y-2">
@@ -142,7 +142,7 @@ export default function DesktopLayout({ onLoginClick, isAuthenticated }: Desktop
             <span className="cursor-pointer hover:underline">Program</span>
             <span className="cursor-pointer hover:underline">Terms & Policies</span>
           </div>
-          <span>© 2025 ShawtyForm</span>
+          <span>© 2025 SweetSwoot</span>
         </div>
       </div>
       
@@ -224,7 +224,7 @@ export default function DesktopLayout({ onLoginClick, isAuthenticated }: Desktop
             </div>
           ) : activeView === 'grid' ? (
             <VideoGrid 
-              tag={activeTab === "All" ? undefined : activeTab}
+              tag={activeTab === "All" ? undefined : activeTab.toLowerCase()}
               onVideoSelect={(videoId) => {
                 setSelectedVideoId(videoId);
                 setActiveView('view');

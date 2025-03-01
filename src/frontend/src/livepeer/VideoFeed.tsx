@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useActor } from '../ic/Actors';
 import { VideoPlayer } from './VideoPlayer';
 import type { VideoMetadata } from '../../../backend/declarations/backend.did';
-import { BackendExtended } from './types';
+// BackendExtended no longer needed with our proxy
 
 interface VideoFeedProps {
   tag?: string;
@@ -17,57 +17,113 @@ export function VideoFeed({ tag, className = '', onVideoSelect }: VideoFeedProps
   const [error, setError] = useState<string | null>(null);
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
   
-  // Load videos based on tag or all videos
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
+  // Create a stable function for fetching videos
+  const fetchVideos = async () => {
+    if (!actor) {
+      console.log("No actor available in VideoFeed, setting loading to false");
+      setLoading(false);
+      return;
+    }
     
-    const fetchVideos = async () => {
-      if (!actor) return;
+    try {
+      let videoList: VideoMetadata[];
       
-      try {
-        let videoList: VideoMetadata[];
-        // Cast the actor to our extended type
-        const backendActor = actor as unknown as BackendExtended;
-        
-        if (tag) {
-          try {
-            console.log('Searching videos by tag in VideoFeed:', tag);
-            // @ts-ignore - Our proxy handles this correctly
-            videoList = await actor.list_videos_by_tag(tag);
-            console.log(`Found ${videoList.length} videos with tag in VideoFeed: ${tag}`);
-          } catch (err) {
-            console.error(`Error searching for videos with tag ${tag} in VideoFeed:`, err);
-            videoList = [];
-          }
-        } else {
-          // Try using our new proxied actor that handles the actor.actor nesting
-          try {
-            console.log('Getting all videos in VideoFeed');
-            // @ts-ignore - Our proxy handles this correctly
-            videoList = await actor.list_all_videos();
-            console.log("Successfully loaded videos in VideoFeed:", videoList);
-          } catch (err) {
-            console.error("Error loading videos in VideoFeed:", err);
-            videoList = [];
-          }
-          console.log("Loaded videos:", videoList);
+      // Modified tag handling to use list_all_videos for undefined or "All" tag
+      if (tag && tag !== "all" && tag !== "All") {
+        try {
+          console.log('Searching videos by tag in VideoFeed:', tag);
+          // @ts-ignore - Our proxy handles this correctly
+          videoList = await actor.list_videos_by_tag(tag.toLowerCase());
+          console.log(`Found ${videoList.length} videos with tag in VideoFeed: ${tag}`);
+        } catch (err) {
+          console.error(`Error searching for videos with tag ${tag} in VideoFeed:`, err);
+          videoList = [];
         }
-        
-        // Sort videos by timestamp (newest first)
-        videoList.sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
-        
-        setVideos(videoList);
-      } catch (err) {
-        console.error('Error fetching videos:', err);
-        setError('Failed to load videos: ' + (err instanceof Error ? err.message : String(err)));
-        setVideos([]);
-      } finally {
-        setLoading(false);
+      } else {
+        // Try using the properly fixed actor methods for all videos
+        try {
+          console.log('Getting all videos in VideoFeed (tag is undefined or "All")');
+          // Make sure we call the method correctly
+          console.log("About to call list_all_videos");
+          // @ts-ignore - we know this exists from the backend.did file
+          if (actor.actor && typeof actor.actor.list_all_videos === 'function') {
+            console.log("Using actor.actor.list_all_videos directly");
+            // @ts-ignore - we know this exists
+            videoList = await actor.actor.list_all_videos();
+          } // @ts-ignore - we know this exists
+          else if (typeof actor.list_all_videos === 'function') {
+            console.log("Using actor.list_all_videos directly");
+            // @ts-ignore - we know this exists 
+            videoList = await actor.list_all_videos();
+          } else {
+            console.error("list_all_videos method not found on actor");
+            videoList = [];
+          }
+          console.log("Successfully loaded videos in VideoFeed:", videoList);
+          
+          // Check if videos are properly shaped
+          if (videoList && videoList.length > 0) {
+            console.log("First video structure:", videoList[0]);
+          }
+        } catch (err) {
+          console.error("Error loading videos from backend:", err);
+          // Try to load videos from localStorage as a fallback during development
+          try {
+            const localVideos = JSON.parse(localStorage.getItem('localVideos') || '[]');
+            if (localVideos.length > 0) {
+              console.log("Loading videos from localStorage fallback:", localVideos);
+              videoList = localVideos;
+            } else {
+              videoList = [];
+            }
+          } catch (localErr) {
+            console.error("Error loading from localStorage:", localErr);
+            videoList = [];
+          }
+        }
+        console.log("Loaded videos:", videoList);
       }
-    };
+      
+      // Sort videos by timestamp (newest first)
+      if (videoList && videoList.length > 0) {
+        videoList.sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
+      }
+      
+      setVideos(videoList);
+    } catch (err) {
+      console.error('Error fetching videos:', err);
+      setError('Failed to load videos: ' + (err instanceof Error ? err.message : String(err)));
+      setVideos([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Create a ref to track previous fetch parameters
+  const prevFetchIdRef = useRef<string | null>(null);
+  
+  // Load videos based on tag or all videos with better actor readiness check
+  useEffect(() => {
+    // Check that actor is fully ready before attempting to fetch
+    if (!actor || !actor.actor) {
+      console.log("VideoFeed: Actor not fully ready yet, skipping fetch");
+      return;
+    }
     
-    fetchVideos();
+    // Create a stable identifier for the current fetch parameters
+    // Include actor.actor existence in the ID to ensure we re-fetch when it becomes available
+    const actorId = actor.actor ? 'has-nested-actor' : 'no-nested-actor';
+    const fetchId = `${actorId}-${tag || 'all'}`;
+    
+    // Only fetch if parameters have changed
+    if (prevFetchIdRef.current !== fetchId) {
+      console.log(`VideoFeed fetching with new parameters: ${fetchId}`);
+      setLoading(true);
+      setError(null);
+      prevFetchIdRef.current = fetchId;
+      fetchVideos();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actor, tag]);
   
   // Handle video scroll

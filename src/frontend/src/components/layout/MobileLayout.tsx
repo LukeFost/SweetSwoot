@@ -7,6 +7,7 @@ import {
 import Button from '../ui/Button';
 import { AccountDialog } from '../AccountDialog';
 import { VideoFeed, VideoUpload } from '../../livepeer';
+import { VideoGrid } from '../video/VideoGrid';
 import { useSiwe } from 'ic-siwe-js/react';
 import { SimpleSearch } from '../search/SimpleSearch';
 
@@ -15,28 +16,7 @@ interface MobileLayoutProps {
   isAuthenticated: boolean;
 }
 
-// Simple mobile VideoCard component
-const VideoCard = ({ caption, user, views, onClick }: { 
-  caption: string;
-  user: string;
-  views: string;
-  onClick?: () => void;
-}) => {
-  return (
-    <div 
-      className="flex flex-col bg-zinc-800 rounded-lg overflow-hidden"
-      onClick={onClick}
-    >
-      <div className="aspect-[9/16] bg-zinc-700 flex items-center justify-center">
-        <span className="text-xs text-center px-2 text-zinc-500">{caption}</span>
-      </div>
-      <div className="p-2">
-        <p className="text-sm font-medium truncate">{user}</p>
-        <p className="text-xs text-zinc-400">{views} views</p>
-      </div>
-    </div>
-  );
-};
+// We've replaced the simple VideoCard with the full VideoGrid component
 
 export default function MobileLayout({ onLoginClick, isAuthenticated }: MobileLayoutProps) {
   const [showAccountDialog, setShowAccountDialog] = useState(false);
@@ -44,15 +24,7 @@ export default function MobileLayout({ onLoginClick, isAuthenticated }: MobileLa
   const [activeView, setActiveView] = useState<'grid' | 'feed' | 'search'>('grid');
   const { identity } = useSiwe();
   
-  // Sample video data for grid view
-  const dummyVideos = [
-    { user: "ellaonwheels_0", views: "18.5M", caption: "Short clip of a micro car at night" },
-    { user: "vexbolts", views: "3M", caption: "Person in a suit discussing 2025 milestone" },
-    { user: "mrbeast", views: "16.1M", caption: "\"I'm Buying TikTok\" text overlay" },
-    { user: "street_art888", views: "13.2M", caption: "Optical illusion square hole table" },
-    { user: "squidgamenetflix", views: "16.2M", caption: "Clip of someone dancing in Squid Game outfit" },
-    { user: "jamieandblake", views: "5.2M", caption: "Couple in a store; comedic reaction" },
-  ];
+  // We'll use real data from the backend instead of dummy videos
 
   const handleUploadComplete = () => {
     setShowUploadModal(false);
@@ -122,18 +94,13 @@ export default function MobileLayout({ onLoginClick, isAuthenticated }: MobileLa
           <SimpleSearch />
         </div>
       ) : activeView === 'grid' ? (
-        <div className="flex-grow grid grid-cols-2 gap-3 p-3">
-          {dummyVideos.map((video, index) => (
-            <VideoCard 
-              key={index}
-              caption={video.caption}
-              user={video.user}
-              views={video.views}
-              onClick={() => {
-                setActiveView('feed');
-              }}
-            />
-          ))}
+        <div className="flex-grow">
+          <VideoGrid 
+            className="p-3"
+            onVideoSelect={() => {
+              setActiveView('feed');
+            }}
+          />
         </div>
       ) : (
         <div className="flex-grow">

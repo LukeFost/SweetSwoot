@@ -9,11 +9,12 @@ import { useActor } from "../../ic/Actors";
 export default function AllProfiles() {
   const [profiles, setProfiles] = useState<[string, UserProfile][]>([]);
   const [loading, setLoading] = useState(true);
-  const { actor } = useActor();
+  const actor = useActor();
 
   useEffect(() => {
     if (!actor) return;
     (async () => {
+      // @ts-ignore - Handled by our proxy
       const response = await actor.list_profiles();
       if (response && "Ok" in response) {
         setProfiles(response.Ok);

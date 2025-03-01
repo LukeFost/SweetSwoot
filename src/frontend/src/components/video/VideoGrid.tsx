@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useActor } from '../../ic/Actors';
-import { BackendExtended } from '../../livepeer/types';
+// BackendExtended no longer needed with our proxy
 import { twMerge } from 'tailwind-merge';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -17,57 +17,102 @@ export function VideoGrid({ tag, className = '', onVideoSelect }: VideoGridProps
   const [error, setError] = useState<string | null>(null);
   // Removed unused state
 
-  // Load videos based on tag or all videos
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
+  // Create a stable reference for the fetch function
+  const fetchVideos = async () => {
+    if (!actor) {
+      console.log("No actor available, setting loading to false");
+      setLoading(false);
+      return;
+    }
     
-    const fetchVideos = async () => {
-      if (!actor) return;
+    try {
+      let videoList: any[] = [];
       
-      try {
-        let videoList: any[];
-        // Cast the actor to our extended type
-        const backendActor = actor as unknown as BackendExtended;
-        
-        if (tag) {
-          try {
-            console.log('Searching videos by tag:', tag);
-            // @ts-ignore - Our proxy handles this correctly
-            videoList = await actor.list_videos_by_tag(tag.toLowerCase());
-            console.log(`Found ${videoList.length} videos with tag: ${tag}`);
-          } catch (err) {
-            console.error(`Error searching for videos with tag ${tag}:`, err);
-            videoList = [];
-          }
-        } else {
-          // Try using our new proxied actor that handles the actor.actor nesting
-          try {
-            console.log('Getting all videos in VideoGrid');
-            // @ts-ignore - Our proxy handles this correctly
-            videoList = await actor.list_all_videos();
-            console.log("Successfully loaded videos:", videoList);
-          } catch (err) {
-            console.error("Error loading videos:", err);
-            videoList = [];
-          }
-          console.log("Loaded videos for grid:", videoList);
+      // Modified tag handling to use list_all_videos for undefined or "All" tag
+      if (tag && tag !== "all" && tag !== "All") {
+        try {
+          console.log('Searching videos by tag:', tag);
+          // @ts-ignore - Our proxy handles this correctly
+          videoList = await actor.list_videos_by_tag(tag.toLowerCase());
+          console.log(`Found ${videoList.length} videos with tag: ${tag}`);
+        } catch (err) {
+          console.error(`Error searching for videos with tag ${tag}:`, err);
+          videoList = [];
         }
-        
-        // Sort videos by timestamp (newest first)
-        videoList.sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
-        
-        setVideos(videoList);
-      } catch (err) {
-        console.error('Error fetching videos:', err);
-        setError('Failed to load videos: ' + (err instanceof Error ? err.message : String(err)));
-        setVideos([]);
-      } finally {
-        setLoading(false);
+      } else {
+        // Try using the properly fixed actor methods for all videos
+        try {
+          console.log('Getting all videos in VideoGrid (tag is undefined or "All")');
+          // Make sure we call the method correctly
+          console.log("About to call list_all_videos in VideoGrid");
+          // @ts-ignore - we know this exists from the backend.did file 
+          if (actor.actor && typeof actor.actor.list_all_videos === 'function') {
+            console.log("Using actor.actor.list_all_videos directly in VideoGrid");
+            // @ts-ignore - we know this exists
+            videoList = await actor.actor.list_all_videos();
+          } // @ts-ignore - we know this exists
+          else if (typeof actor.list_all_videos === 'function') {
+            console.log("Using actor.list_all_videos directly in VideoGrid");
+            // @ts-ignore - we know this exists
+            videoList = await actor.list_all_videos();
+          } else {
+            console.error("list_all_videos method not found on actor in VideoGrid");
+            videoList = [];
+          }
+          console.log("Successfully loaded videos:", videoList);
+          
+          // Check if videos are properly shaped
+          if (videoList && videoList.length > 0) {
+            console.log("First video structure:", videoList[0]);
+          }
+        } catch (err) {
+          console.error("Error loading videos:", err);
+          videoList = [];
+        }
+        console.log("Loaded videos for grid:", videoList);
       }
-    };
+      
+      // Sort videos by timestamp (newest first)
+      if (videoList && videoList.length > 0) {
+        videoList.sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
+      }
+      
+      console.log("Setting videos state with", videoList.length, "items");
+      setVideos(videoList);
+    } catch (err) {
+      console.error('Error fetching videos:', err);
+      setError('Failed to load videos: ' + (err instanceof Error ? err.message : String(err)));
+      setVideos([]);
+    } finally {
+      console.log("Setting loading to false");
+      setLoading(false);
+    }
+  };
+
+  // Create a ref to store the previous fetch ID
+  const prevFetchIdRef = useRef<string | null>(null);
+  
+  // Load videos based on tag or all videos - with better actor readiness check
+  useEffect(() => {
+    // Check that actor is fully ready before attempting to fetch
+    if (!actor || !actor.actor) {
+      console.log("Actor not fully ready yet, skipping fetch");
+      return;
+    }
     
-    fetchVideos();
+    // Create a stable identifier for the current fetch parameters
+    // Include actor.actor existence in the ID to ensure we re-fetch when it becomes available
+    const actorId = actor.actor ? 'has-nested-actor' : 'no-nested-actor';
+    const fetchId = `${actorId}-${tag || 'all'}`;
+    
+    if (prevFetchIdRef.current !== fetchId) {
+      console.log(`Fetching videos with new parameters: ${fetchId}`);
+      setLoading(true);
+      setError(null);
+      prevFetchIdRef.current = fetchId;
+      fetchVideos();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actor, tag]);
 
   // Format view counts
@@ -88,18 +133,35 @@ export function VideoGrid({ tag, className = '', onVideoSelect }: VideoGridProps
 
   // Get video thumbnail from storage_ref
   const getVideoThumbnail = (video: any) => {
-    if (!video.storage_ref) return '/default-thumbnail.jpg';
+    // Handle the optional (opt) storage_ref from Candid
+    if (!video.storage_ref || !video.storage_ref[0]) return '/default-thumbnail.jpg';
     
-    // If LivePeer, we could generate thumbnail URL based on playback ID
-    // This is a placeholder - you'd need to implement actual thumbnail generation
-    if (video.storage_ref.startsWith('livepeer:')) {
-      const playbackId = video.storage_ref.substring(9);
-      return `https://livepeercdn.com/asset/${playbackId}/thumbnail.jpg`;
+    const storageRefValue = video.storage_ref[0];
+    
+    // If LivePeer, use a generic thumbnail for now
+    // The Livepeer CDN paths aren't working correctly
+    if (storageRefValue.startsWith('livepeer:')) {
+      // Instead of trying to use the actual thumbnail URL which isn't working:
+      // const playbackId = storageRefValue.substring(9);
+      // return `https://livepeercdn.com/asset/${playbackId}/thumbnail.jpg`;
+      
+      // Use a placeholder gradient or default image instead
+      return '/header.png';
     }
     
     return '/default-thumbnail.jpg';
   };
 
+  // Add debug statement to check state before rendering and identify which branch will be rendered
+  const renderBranch = error ? "error" : loading ? "loading" : videos.length === 0 ? "empty" : "videos";
+  console.log("VideoGrid render state:", { 
+    loading, 
+    error, 
+    videosLength: videos.length,
+    renderBranch,
+    tag
+  });
+  
   return (
     <div className={twMerge('container mx-auto px-4 py-6', className)}>
       {/* Search and category tabs removed since they're in the layout */}
@@ -112,6 +174,9 @@ export function VideoGrid({ tag, className = '', onVideoSelect }: VideoGridProps
         </div>
       ) : loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="col-span-full text-center py-2 mb-4 text-white bg-gray-800 rounded">
+            Loading videos...
+          </div>
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="animate-pulse">
               <div className="aspect-[9/16] bg-gray-300 dark:bg-gray-700 rounded-lg mb-2"></div>
@@ -132,42 +197,48 @@ export function VideoGrid({ tag, className = '', onVideoSelect }: VideoGridProps
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {videos.map((video) => (
-            <div 
-              key={video.video_id}
-              className="cursor-pointer hover:opacity-90 transition-opacity"
-              onClick={() => onVideoSelect && onVideoSelect(video.video_id)}
-            >
-              {/* Video Thumbnail */}
-              <div className="aspect-[9/16] bg-gray-200 dark:bg-gray-800 rounded-lg overflow-hidden mb-2">
-                <img 
-                  src={getVideoThumbnail(video)} 
-                  alt={video.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              
-              {/* Video Info */}
-              <div className="flex items-start space-x-2">
-                {/* Creator Avatar - could be fetched in the future */}
-                <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-700 flex-shrink-0 mt-1"></div>
+          <div className="col-span-full text-center py-2 mb-4 text-white bg-gray-800 rounded">
+            Found {videos.length} videos to display
+          </div>
+          {videos.map((video) => {
+            console.log("Rendering video:", video.video_id, video.title);
+            return (
+              <div 
+                key={video.video_id}
+                className="cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => onVideoSelect && onVideoSelect(video.video_id)}
+              >
+                {/* Video Thumbnail */}
+                <div className="aspect-[9/16] bg-gray-200 dark:bg-gray-800 rounded-lg overflow-hidden mb-2">
+                  <img 
+                    src={getVideoThumbnail(video)} 
+                    alt={video.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
                 
-                <div>
-                  <h3 className="font-medium text-gray-900 dark:text-gray-100 line-clamp-2 mb-1">
-                    {video.title}
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    @user_{video.uploader_principal.toString().substring(0, 8)}
-                  </p>
-                  <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
-                    <span>{formatViewCount(Math.floor(Math.random() * 20_000_000))} views</span>
-                    <span>•</span>
-                    <span>{getTimeAgo(video.timestamp)}</span>
+                {/* Video Info */}
+                <div className="flex items-start space-x-2">
+                  {/* Creator Avatar - could be fetched in the future */}
+                  <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-700 flex-shrink-0 mt-1"></div>
+                  
+                  <div>
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100 line-clamp-2 mb-1">
+                      {video.title}
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      @user_{video.uploader_principal.toString().substring(0, 8)}
+                    </p>
+                    <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
+                      <span>{formatViewCount(Math.floor(Math.random() * 20_000_000))} views</span>
+                      <span>•</span>
+                      <span>{getTimeAgo(video.timestamp)}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

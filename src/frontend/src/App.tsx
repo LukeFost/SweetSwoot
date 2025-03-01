@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import GitHubIcon from "./components/GitHubIcon";
 import DesktopLayout from "./components/layout/DesktopLayout";
 import MobileLayout from "./components/layout/MobileLayout";
 import LoginPage from "./components/login/LoginPage";
@@ -45,9 +44,6 @@ function App() {
         ) : (
           <DesktopLayout onLoginClick={handleLoginClick} isAuthenticated={isAuthenticated} />
         )}
-        <div className="fixed bottom-4 right-4">
-          <GitHubIcon />
-        </div>
       </div>
     </LivepeerProvider>
   );

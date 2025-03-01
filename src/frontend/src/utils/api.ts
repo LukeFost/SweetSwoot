@@ -3,6 +3,25 @@
  */
 
 /**
+ * Helper function for JSON stringify with BigInt support
+ * @param _key - The key of the property being stringified (unused but required by JSON.stringify)
+ * @param value - The value to stringify
+ * @returns The value converted to a format JSON can handle
+ */
+export function bigintReplacer(_key: string, value: any): any {
+  return typeof value === "bigint" ? value.toString() : value;
+}
+
+/**
+ * Safely stringify an object that may contain BigInt values
+ * @param obj - The object to stringify
+ * @returns A JSON string with BigInt values converted to strings
+ */
+export function safeStringify(obj: any): string {
+  return JSON.stringify(obj, bigintReplacer);
+}
+
+/**
  * Get all videos from the backend
  * This function handles the naming discrepancy between backend and frontend
  */

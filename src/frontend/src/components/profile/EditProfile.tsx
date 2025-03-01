@@ -16,7 +16,7 @@ export default function EditProfile({
   className,
   allwaysShow,
 }: EditProfileProps) {
-  const { actor } = useActor();
+  const actor = useActor();
 
   // Local state
   const [name, setName] = useState("");
@@ -28,6 +28,7 @@ export default function EditProfile({
   useEffect(() => {
     (async () => {
       if (!actor) return;
+      // @ts-ignore - Handled by our proxy
       const response = await actor.get_my_profile();
       if (response && "Ok" in response) {
         setName(response.Ok.name);
@@ -62,6 +63,7 @@ export default function EditProfile({
     event.preventDefault();
     if (!actor) return;
     setSaving(true);
+    // @ts-ignore - Handled by our proxy
     const response = await actor.save_my_profile(name, avatarUrl);
 
     if (response && "Ok" in response) {

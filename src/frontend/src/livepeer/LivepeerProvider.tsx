@@ -127,8 +127,8 @@ export const createLivepeerClient = (apiKey: string): LivepeerClient => ({
   }
 });
 
-// Create a client instance using the API key 
-export const livepeerClient = createLivepeerClient('8acef8bb-6bd8-48e0-989c-593f27316650');
+// Create a client instance using the API key from environment variables
+export const livepeerClient = createLivepeerClient(import.meta.env.VITE_LIVEPEER_API_KEY);
 
 // Provider component that makes the Livepeer client available
 export function LivepeerProvider({ children }: LivepeerProviderProps) {

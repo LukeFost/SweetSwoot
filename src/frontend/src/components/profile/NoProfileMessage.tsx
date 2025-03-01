@@ -9,7 +9,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLeftRight } from "@fortawesome/free-solid-svg-icons";
 
 export function NoProfileMessage() {
-  const { actor } = useActor();
+  const actor = useActor();
   const { address } = useAccount();
   const { identity } = useSiwe();
 
@@ -20,6 +20,7 @@ export function NoProfileMessage() {
   useEffect(() => {
     (async () => {
       if (!actor) return;
+      // @ts-ignore - Handled by our proxy
       const response = await actor.get_my_profile();
       if (response && "Ok" in response) {
         if (response.Ok.name === "No Name") {
