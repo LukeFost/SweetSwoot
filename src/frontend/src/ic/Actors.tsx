@@ -18,12 +18,14 @@ import toast from "react-hot-toast";
 import { useSiwe } from "ic-siwe-js/react";
 
 const actorContext = createActorContext<_SERVICE>();
+// We're keeping this for when we switch back to real IC backend
+// @ts-ignore - We need this for production but not using it in development
 const useActorBase = createUseActorHook<_SERVICE>(actorContext);
 
 // Create a wrapper that automatically accesses the nested actor
 export const useActor = () => {
   // We're not using the real actor in development mode
-  const _actor = useActorBase();
+  // const actor = useActorBase(); // Commented out to avoid unused variable warning
   
   // Create a mock actor for development
   const mockActor = {

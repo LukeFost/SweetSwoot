@@ -182,19 +182,7 @@ export function VideoFeed({ tag, className = '', onVideoSelect }: VideoFeedProps
   // Show video feed
   const activeVideo = videos[activeVideoIndex];
   
-  // Sample videos array for reference
-  const sampleVideos = [
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4',
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4'
-  ];
+  // Sample videos array is defined in VideoPlayer.tsx
   
   return (
     <div className={`relative h-full ${className}`}>
