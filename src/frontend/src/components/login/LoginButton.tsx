@@ -5,7 +5,11 @@ import { faCircleNotch } from "@fortawesome/free-solid-svg-icons";
 import { isChainIdSupported } from "../../wagmi/is-chain-id-supported";
 import { useSiwe } from "ic-siwe-js/react";
 
-export default function LoginButton() {
+interface LoginButtonProps {
+  className?: string;
+}
+
+export default function LoginButton({ className = "w-44" }: LoginButtonProps) {
   const { isConnected } = useAccount();
   const chainId = useChainId();
   const { login, isLoggingIn, isPreparingLogin } = useSiwe();
@@ -30,7 +34,7 @@ export default function LoginButton() {
 
   return (
     <Button
-      className="w-44"
+      className={className}
       disabled={disabled}
       icon={icon}
       onClick={login}

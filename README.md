@@ -1,209 +1,227 @@
-![](media/header.png)
+Overview
 
-> [!NOTE]  
-> This version of the demo features a backend canister built in Rust. There is also a [TypeScript version](https://github.com/kristoferlund/ic-siwe-react-demo-ts) built using [Azle](https://github.com/demergent-labs/azle).
+This boilerplate:
+	1.	Uses Rust for the backend canister (backend).
+	2.	Uses React + Vite + TypeScript for the frontend (frontend).
+	3.	Integrates Sign In With Ethereum (SIWE) functionality via the ic_siwe_provider canister and the ic-use-siwe-identity React hook.
+	4.	Demonstrates how to authenticate Ethereum wallets and map them to principals on the Internet Computer so that users can interact with IC canisters (the backend) while being logged in with Metamask, WalletConnect, etc.
+	5.	Comes pre-configured with TailwindCSS, Wagmi, viem, React Query, etc.
 
-✅ Sign in with Ethereum to interact with smart contracts (canisters) on the [Internet Computer](https://internetcomputer.org) (IC)!
+If you want to adapt this code for your ShawtyFormVideo (or similarly named) project, simply follow the steps below.
 
-✅ Establish a one-to-one relationship between an Ethereum wallet and an IC identity.
+1. Clone the Repository & Rename
+	1.	Clone the code:
 
-✅ Access the IC capabilities from Ethereum dapp frontends, create cross-chain dapps! Some of the features IC provide are:
+git clone https://github.com/kristoferlund/ic-siwe-react-demo-rust.git ShawtyFormVideo
+cd ShawtyFormVideo
 
-- Native integration with BTC and ETH
-- Twin tokens (ckBTC, ckETH)
-- Fast finality
-- Low transaction fees
-- HTTPS outcalls
-- Store large amounts of data cheaply
-- etc
 
-This React demo application and template demonstrates how to login Ethereum users into an IC canister using the [ic-use-siwe-identity](https://github.com/kristoferlund/ic-siwe/tree/main/packages/ic-use-siwe-identity) hook and [ic-siwe-provider](https://github.com/kristoferlund/ic-siwe/tree/main/packages/ic_siwe_provider) canister.
+	2.	Optional: Rename references (folder names, package.json, dfx.json, etc.) if you want to use ShawtyFormVideo as the name. For example, in dfx.json, you might change:
 
-The goal of the [ic-siwe](https://github.com/kristoferlund/ic-siwe) project is to enhance the interoperability between Ethereum and the Internet Computer platform, enabling developers to build applications that leverage the strengths of both platforms.
-
-## 👀 Try the live demo: <https://shtr2-2iaaa-aaaal-qckva-cai.icp0.io>
-
-## Key features
-
-The demo is buit using [Vite](https://vitejs.dev/) to provide a fast development experience. It also uses:
-
-- TypeScript
-- TailwindCSS
-- Wagmi/Viem Ethereum libraries
-- RainbowKit for Ethereum wallet integration
-
-## Table of contents
-
-- [👀 Try the live demo: https://shtr2-2iaaa-aaaal-qckva-cai.icp0.io](#-try-the-live-demo-httpsshtr2-2iaaa-aaaal-qckva-caiicp0io)
-- [Key features](#key-features)
-- [Table of contents](#table-of-contents)
-- [App components](#app-components)
-  - [Backend](#backend)
-  - [Frontend](#frontend)
-  - [IC SIWE Provider](#ic-siwe-provider)
-- [How it works](#how-it-works)
-- [Run locally](#run-locally)
-- [Details](#details)
-  - [IC SIWE Provider](#ic-siwe-provider-1)
-  - [Backend](#backend-1)
-  - [Frontend](#frontend-1)
-    - [SiweIdentityProvider](#siweidentityprovider)
-    - [AuthGuard](#authguard)
-    - [useSiweIdentity](#usesiweidentity)
-- [Updates](#updates)
-- [Contributing](#contributing)
-- [License](#license)
-
-## App components
-
-If you are new to IC, please read the [Internet Computer Basics](https://internetcomputer.org/basics) before proceeding.
-
-For a detailed description of the SIWE concepts, see the [SIWE specification, EIP-4361](https://eips.ethereum.org/EIPS/eip-4361).
-
-This app consists of three main components:
-
-### Backend
-
-The backend is a Rust based canister that, for demonstration purposes, implements some basic functionality for managing user profiles.
-
-### Frontend
-
-The frontend is a React application that interacts with the backend canister. To be able to make authenticated calls to the backend canister, the frontend needs to have an identity.
-
-### IC SIWE Provider
-
-The pre-built IC Siwe Provider is used to create an identity for the user. It is a a Rust based canister that implements the SIWE login flow. The flow starts with a SIWE message being generated and ends with a Delegate Identity being created for the user. The Delegate Identity gives the user access to the backend canister.
-
-## How it works
-
-This is the high-level flow between the app components when a user logs in:
-
-1. The application requests a SIWE message from the `ic_siwe_provider` canister on behalf of the user.
-2. The application displays the SIWE message to the user who signs it with their Ethereum wallet.
-3. The application sends the signed SIWE message to the `ic_siwe_provider` canister to login the user. The canister verifies the signature and creates an identity for the user.
-4. The application retrieves the identity from the `ic_siwe_provider` canister.
-5. The application can now use the identity to make authenticated calls to the app canister.
-
-![Sign in with Ethereum - Login flow](/media/flow.png)
-
-## Run locally
-
-```bash
-dfx start --clean --background
-make deploy-all
-```
-
-## Details
-
-### IC SIWE Provider
-
-The `ic_siwe_provider` canister is pre-built and added to the project as a dependency in the [dfx.json](/dfx.json) file.
-
-```json
-{
-  "canisters": {
-    "ic_siwe_provider": {
-      "type": "custom",
-      "candid": "https://github.com/kristoferlund/ic-siwe/releases/download/v0.1.1/ic_siwe_provider.did",
-      "wasm": "https://github.com/kristoferlund/ic-siwe/releases/download/v0.1.1/ic_siwe_provider.wasm.gz"
-    },
-    ...
-  },
-  ...
+// Original
+"canisters": {
+  "backend": { ... },
+  "ic_siwe_provider": { ... },
+  "frontend": { ... }
 }
-```
 
-Its behavior is configured and passed as an argument to the canister `init` function. Below is an example of how to configure the canister using the `dfx` command line tool in the project [Makefile](/Makefile):
+to
 
-```makefile
-dfx deploy ic_siwe_provider --argument "( \
-    record { \
-        domain = \"127.0.0.1\"; \
-        uri = \"http://127.0.0.1:5173\"; \
-        salt = \"salt\"; \
-        chain_id = opt 1; \
-        scheme = opt \"http\"; \
-        statement = opt \"Login to the app\"; \
-        sign_in_expires_in = opt 300000000000; /* 5 minutes */ \
-        session_expires_in = opt 604800000000000; /* 1 week */ \
-        targets = opt vec { \
-            \"$$(dfx canister id ic_siwe_provider)\"; \
-            \"$$(dfx canister id backend)\"; \
-        }; \
-    } \
-)"
-```
+// If you want a different canister name
+"canisters": {
+  "shawty_form_video_backend": { ... },
+  "ic_siwe_provider": { ... },
+  "shawty_form_video_frontend": { ... }
+}
 
-For more information about the configuration options, see the [ic-siwe-provider](https://github.com/kristoferlund/ic-siwe/tree/main/packages/ic_siwe_provider) documentation.
+In package.json, you could change:
 
-### Backend
-
-The backend is a Rust based canister that, for demonstration purposes, implements some basic functionality for managing user profiles. It is also given an init argument - the `ic_siwe_provider` canister id - to be able to verify the identity of the user.
-
-```makefile
-dfx deploy backend --argument "$$(dfx canister id ic_siwe_provider)"
-```
-
-### Frontend
-
-The frontend is a React application that interacts with the backend canister. To be able to make authenticated calls to the backend canister, the frontend needs an identity. The identity is retrieved from the `ic_siwe_provider` canister.
-
-The frontend uses two other packages from the `ic-siwe` project to simplify logging in users and making authenticated calls to canisters:
-
-- [ic-use-siwe-identity](https://github.com/kristoferlund/ic-siwe/tree/main/packages/ic-use-siwe-identity) - React hook and context provider for easy frontend integration with SIWE enabled Internet Computer canisters.
-- [ic-use-actor](https://github.com/kristoferlund/ic-use-actor) - A React context provider for managing Internet Computer (IC) actors with enhanced features like type safety and request/response interceptors.
-
-#### [SiweIdentityProvider](src/frontend/src/main.tsx)
-
-The application's root component is wrapped with `SiweIdentityProvider` to provide all child components access to the SIWE identity context.
-
-```jsx
-// main.tsx
-
-import { SiweIdentityProvider } from 'ic-use-siwe-identity';
-import { _SERVICE } from "../../declarations/ic_siwe_provider/ic_siwe_provider.did";
-
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    // ...
-    <SiweIdentityProvider<_SERVICE>
-      canisterId={canisterId}
-      idlFactory={idlFactory}
-    >
-      // ... app components
-    </SiweIdentityProvider>
-    // ...
-  </React.StrictMode>,
-);
-```
-
-#### [AuthGuard](src/frontend/src/AuthGuard.tsx)
-
-An `AuthGuard` component is used to protect routes that require the user to be logged in. It also makes sure to log out the user if they change ethereum wallet etc.
-
-#### [useSiweIdentity](src/frontend/src/components/login/LoginButton.tsx)
-
-To initiate the login flow, the `login` function is called on the Use the `useSiweIdentity` hook.
-
-```jsx
-// LoginButton.tsx
-
-import { useSiweIdentity } from "ic-use-siwe-identity/react";
-
-function LoginButton() {
-  const { login, clear, identity, ... } = useSiweIdentity();
+{
+  "name": "ic-siwe-react-demo-rust",
   // ...
 }
-```
 
-## Updates
+to
 
-See the [CHANGELOG](CHANGELOG.md) for details on updates.
+{
+  "name": "shawty-form-video",
+  // ...
+}
 
-## Contributing
+The code will still work with the original names, so renaming is optional.
 
-Contributions are welcome. Please submit your pull requests or open issues to propose changes or report bugs.
+2. Install Dependencies
 
-## License
+This repository uses pnpm as its package manager (though yarn or npm could also be used if you prefer). Make sure you have pnpm installed:
 
-This project is licensed under the MIT License. See the LICENSE file for more details.
+npm install -g pnpm
+
+From the project root, run:
+
+pnpm install
+
+This will install both frontend and general dev dependencies for the entire project.
+
+3. Local Development
+	1.	Start dfx (the Internet Computer local replica):
+
+dfx start --clean --background
+
+
+	2.	Deploy the canisters (both the backend and the ic_siwe_provider canister) to your local replica:
+
+make deploy-all
+
+	•	This runs dfx deploy ic_siwe_provider with a set of init arguments (domain, uri, salt, chain_id, etc.).
+	•	Then it deploys your backend canister, hooking it up to the SIWE provider canister.
+	•	Finally it deploys your React web assets as an “assets canister” (the frontend).
+
+	3.	Run the frontend dev server:
+
+make run-frontend
+
+or equivalently
+
+pnpm run dev
+
+By default, this will start Vite on http://127.0.0.1:5173.
+You can open your browser at http://127.0.0.1:5173 to see the application.
+
+Project Layout Recap
+	•	src/backend/
+Rust code for the main canister (where you’ll write your domain logic).
+	•	ic_siwe_provider/
+Pre-built canister + declarations for Sign in with Ethereum.
+You typically won’t need to modify the code inside ic_siwe_provider; it’s added as a dependency.
+	•	src/frontend/
+Your React + TypeScript frontend, using wagmi and viem for Ethereum integration and ic-use-siwe-identity for IC identity integration.
+	•	dfx.json
+IC configuration (which canisters exist, how to build them, etc.).
+	•	Makefile
+Helper tasks to create, deploy, upgrade canisters, and run the frontend.
+
+4. How the SIWE Flow Works
+	1.	The frontend requests a SIWE message from the ic_siwe_provider canister.
+	2.	The user signs the message with their Ethereum wallet.
+	3.	The frontend sends the signed message back to the ic_siwe_provider.
+	4.	The ic_siwe_provider canister verifies the signature and generates a delegated IC identity for the user.
+	5.	The frontend can now make authenticated calls to your backend canister, as the user’s principal is recognized.
+
+Hooking into your own backend
+	•	The main code for storing or retrieving data from your backend canister is in src/backend/.
+	•	The boilerplate shows a simple user-profile system.
+	•	Modify or extend the backend Rust code to add your own domain logic, endpoints, etc.
+
+5. Extending the Backend Canister
+
+Inside src/backend/src/service/, you have example modules:
+	•	get_my_profile.rs
+	•	list_profiles.rs
+	•	save_my_profile.rs
+
+These demonstrate how to:
+	•	Query a profile (with #[query] functions)
+	•	Update or save a profile (with #[update] functions)
+
+Steps to add a new endpoint
+	1.	Create a new file in src/backend/src/service/ with a function annotated as either #[query] or #[update].
+	2.	Add it to mod.rs (so it’s included in the final build).
+	3.	Update your DID file in src/backend/backend.did to define new methods or new data types.
+	4.	Rebuild and redeploy:
+
+make deploy-backend
+
+or
+
+dfx deploy backend
+
+
+
+That’s it. On the frontend, you’d import the new method from the auto-generated actor in src/backend/declarations/ (or via ic-use-actor if you prefer).
+
+6. Deploying to the ICP Mainnet
+
+When you are ready to deploy to mainnet, you have a couple of steps:
+	1.	Authenticate with your dfx identity (ensure it has sufficient cycles or an available wallet).
+Typically:
+
+dfx identity use <your_mainnet_identity_name>
+
+
+	2.	Set your environment to the IC mainnet:
+
+dfx network use ic
+
+
+	3.	Configure dfx.json for mainnet (if you want custom settings, e.g., canister names, WASM compression, etc.).
+	4.	Deploy:
+
+dfx deploy --network ic ic_siwe_provider --argument '(record { ... })'
+dfx deploy --network ic backend --argument '(principal "<ic_siwe_provider_canister_id>")'
+dfx deploy --network ic frontend
+
+Or you can run:
+
+make deploy-all
+
+with the environment set to ic. You may need to tweak the Makefile arguments for production (different domain, scheme = “https”, etc.).
+
+	5.	Update your canister IDs in any environment variables or .env file if needed (Vite needs them for the React define block in vite.config.ts).
+
+Important SIWE Settings for Production
+	•	In the Makefile, the dfx deploy ic_siwe_provider --argument "(record { ... })" call includes domain, uri, etc.:
+
+domain = "127.0.0.1";
+uri = "http://127.0.0.1:5173";
+scheme = opt "http";
+
+For mainnet, you’ll want to set the domain to your actual domain (e.g., mydapp.com) and the scheme to "https", and so on:
+
+domain = "mydapp.com";
+uri = "https://mydapp.com";
+scheme = opt "https";
+
+This ensures SIWE messages reference your real domain and thus are recognized as valid by the user’s wallet.
+
+7. Common Commands
+
+A quick cheat sheet for the most common commands:
+	•	dfx start --clean --background
+Starts a fresh local replica in the background.
+	•	make create-canisters
+Creates the canisters in dfx.json.
+	•	make deploy-provider
+Deploys only the ic_siwe_provider.
+	•	make deploy-backend
+Deploys only the backend.
+	•	make deploy-frontend
+Deploys only the frontend assets canister.
+	•	make deploy-all
+Runs all of the above steps in one go.
+	•	make run-frontend
+Runs pnpm run dev to start the Vite dev server for local development.
+	•	dfx canister call <canister-name> <method>
+To call canister methods from the command line.
+
+8. Customizing Your Project
+	1.	Use your own UI – You can replace or remove the entire profile/ flow with your own forms, images, etc.
+	2.	Use additional canisters – You can add more Rust canisters in dfx.json and set up cross-canister calls from your backend to the new canisters.
+	3.	Change Ethereum chain – In the file src/frontend/src/wagmi/wagmi.config.ts, you can add or remove supported EVM chains. If you want multiple testnets or other mainnets, you can add them in chains array.
+
+9. Summary
+	•	Clone the repo into your new project folder.
+	•	Install dependencies (pnpm install).
+	•	Start local development with dfx start --clean --background and make deploy-all.
+	•	Run the frontend with pnpm run dev.
+	•	Modify the Rust canister code in src/backend/ for your business logic.
+	•	Deploy to the ICP mainnet by switching your dfx network to ic and providing production arguments (domain, scheme, etc.) to the SIWE provider canister.
+
+This boilerplate should give you a quick starting point to:
+	•	Build cross-chain dapps bridging Ethereum wallets into the IC.
+	•	Store, query, and manage user data on your own custom Rust canisters.
+	•	Expand the SIWE flow with additional logic and user experiences.
+
+If you have any trouble with the above steps or want to explore more about “Sign in with Ethereum” for the Internet Computer, check out:
+	•	ic-siwe GitHub organization
+	•	ic-siwe-provider docs
+	•	ic-use-siwe-identity docs

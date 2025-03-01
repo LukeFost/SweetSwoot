@@ -12,11 +12,11 @@ async fn save_my_profile(name: String, avatar_url: String) -> Result<UserProfile
     // Get the address of the caller from the siwe provider canister, return error if it fails. A failure
     // here means that the caller is not authenticated using the siwe provider. This might happen if the
     // caller uses an anonymous principal or has authenticated using a different identity provider.
-    let address = get_address().await?;
+    let evm_address = get_address().await?;
 
     // If user has an address and thus is authenticated, create a profile and save it.
     let profile = UserProfile {
-        address,
+        evm_address,
         name,
         avatar_url,
     };

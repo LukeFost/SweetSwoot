@@ -26,6 +26,8 @@ dist/
 
 # Environment variables
 .env
+.env.*
+.env.local
 
 # General log files
 logs/
@@ -48,3 +50,8 @@ lerna-debug.log*
 
 # Makefiles
 Makefile.prod
+
+info/
+pnpm-lock.yaml
+tsconfig.app.tsbuildinfo
+tsconfig.app.tsbuildinfo

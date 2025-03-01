@@ -1,3 +1,9 @@
 pub mod get_my_profile;
 pub mod list_profiles;
 pub mod save_my_profile;
+pub mod video;
+pub mod watch;
+pub mod tips;
+pub mod comments;
+pub mod follows;
+pub mod search;

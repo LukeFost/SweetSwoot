@@ -1,12 +1,68 @@
 type Name = text;
 type AvatarUrl = text;
+type VideoId = text;
+type Title = text;
+type Tag = text;
+type StorageRef = text;
+type Text = text;
+type TxHash = text;
+type Principal = principal;
 
+// User Profile
 type UserProfile = record {
-  address : text;
+  evm_address : text;
   name : text;
   avatar_url : text;
 };
 
+// Video Metadata
+type VideoMetadata = record {
+  video_id : text;
+  uploader_principal : Principal;
+  tags : vec Tag;
+  title : text;
+  storage_ref : opt StorageRef;
+  timestamp : nat64;
+};
+
+// Watch Event
+type WatchEvent = record {
+  user_principal : Principal;
+  video_id : text;
+  watch_duration_sec : nat32;
+  liked : bool;
+  completed : bool;
+  timestamp : nat64;
+};
+
+// Tip Record
+type TipRecord = record {
+  from_addr : text;
+  to_addr : text;
+  video_id : text;
+  amount : nat64;
+  tx_hash : text;
+  timestamp : nat64;
+};
+
+// Comment
+type Comment = record {
+  commenter_principal : Principal;
+  video_id : text;
+  text : text;
+  timestamp : nat64;
+};
+
+// Analytics
+type VideoAnalytics = record {
+  total_views : nat64;
+  total_unique_viewers : nat64;
+  total_likes : nat64;
+  total_completions : nat64;
+  avg_watch_duration : nat64;
+};
+
+// Response types
 type GetMyProfileResponse = variant {
   Ok : UserProfile;
   Err : text;
@@ -22,8 +78,72 @@ type ListProfilesResponse = variant {
   Err : text;
 };
 
+type VideoMetadataResponse = variant {
+  Ok : VideoMetadata;
+  Err : text;
+};
+
+type CommentResponse = variant {
+  Ok : Comment;
+  Err : text;
+};
+
+type TipRecordResponse = variant {
+  Ok : TipRecord;
+  Err : text;
+};
+
+type EmptyResponse = variant {
+  Ok;
+  Err : text;
+};
+
+type VideoAnalyticsResponse = variant {
+  Ok : VideoAnalytics;
+  Err : text;
+};
+
 service : () -> {
+  // User Profile
   "get_my_profile" : () -> (GetMyProfileResponse) query;
   "save_my_profile" : (Name, AvatarUrl) -> (SaveMyProfileResponse);
   "list_profiles" : () -> (ListProfilesResponse) query;
+  
+  // Video Metadata
+  "create_video_metadata" : (VideoId, Title, vec Tag, opt StorageRef) -> (VideoMetadataResponse);
+  "get_video_metadata" : (VideoId) -> (VideoMetadataResponse) query;
+  "list_all_videos" : () -> (vec VideoMetadata) query;
+  "list_videos_by_tag" : (Tag) -> (vec VideoMetadata) query;
+  "list_videos_by_uploader" : (Principal) -> (vec VideoMetadata) query;
+  "update_video_metadata" : (VideoId, opt Title, opt vec Tag, opt StorageRef) -> (VideoMetadataResponse);
+  "delete_video" : (VideoId) -> (EmptyResponse);
+  
+  // Search
+  "search_videos" : (text, opt nat32, opt nat32) -> (vec VideoMetadata) query;
+  "search_videos_by_tags" : (vec text, opt nat32, opt nat32) -> (vec VideoMetadata) query;
+  
+  // Watch Events
+  "log_watch_event" : (VideoId, nat32, bool, bool) -> (EmptyResponse);
+  "get_watch_events" : (VideoId) -> (vec WatchEvent) query;
+  "get_my_watch_events" : () -> (vec WatchEvent) query;
+  "get_video_analytics" : (VideoId) -> (VideoAnalyticsResponse) query;
+  
+  // Tips
+  "record_tip" : (VideoId, nat64, TxHash) -> (TipRecordResponse);
+  "get_tips_for_video" : (VideoId) -> (vec TipRecord) query;
+  "get_my_sent_tips" : () -> (vec TipRecord) query;
+  "get_my_received_tips" : () -> (vec TipRecord) query;
+  
+  // Comments
+  "post_comment" : (VideoId, Text) -> (CommentResponse);
+  "get_comments" : (VideoId) -> (vec Comment) query;
+  "get_my_comments" : () -> (vec Comment) query;
+  "delete_comment" : (VideoId, nat64) -> (EmptyResponse);
+  
+  // Follows
+  "follow_user" : (Principal) -> (EmptyResponse);
+  "unfollow_user" : (Principal) -> (EmptyResponse);
+  "get_followers" : (Principal) -> (vec Principal) query;
+  "get_following" : (Principal) -> (vec Principal) query;
+  "is_following" : (Principal, Principal) -> (bool) query;
 };
