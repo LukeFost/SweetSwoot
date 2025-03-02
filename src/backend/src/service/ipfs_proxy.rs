@@ -6,6 +6,9 @@ use ic_cdk_macros::{update, query};
 use serde_bytes::ByteBuf;
 use std::collections::HashMap;
 
+// Register our exports with the IC
+use ic_cdk::export::candid;
+
 #[derive(CandidType, Deserialize, Debug)]
 pub struct IPFSProxyResult {
     content: ByteBuf,
@@ -27,7 +30,7 @@ pub enum IPFSProxyResponse {
 
 /// Proxy a request to IPFS (Pinata) with authentication to bypass CORS
 #[update]
-async fn proxy_ipfs_content(cid: String) -> IPFSProxyResponse {
+pub async fn proxy_ipfs_content(cid: String) -> IPFSProxyResponse {
     // Build the URL for the Pinata gateway
     let gateway_domain = "salmon-worthy-hawk-798.mypinata.cloud";
     let url = format!("https://{}/ipfs/{}", gateway_domain, cid);
@@ -107,13 +110,13 @@ fn transform_ipfs_response(args: TransformArgs) -> HttpResponse {
 
 /// Get the Pinata JWT environment variable
 #[query]
-fn has_pinata_jwt_configured() -> bool {
+pub fn has_pinata_jwt_configured() -> bool {
     api::trap::global_get::<String>("PINATA_JWT").is_some()
 }
 
 /// Set the Pinata JWT environment variable (admin only)
 #[update]
-fn set_pinata_jwt(jwt: String, caller: Principal) -> Result<(), String> {
+pub fn set_pinata_jwt(jwt: String, caller: Principal) -> Result<(), String> {
     // In a real implementation, you'd check if caller is an admin
     // This is a simplified example
     let is_admin = true; // Replace with actual admin check

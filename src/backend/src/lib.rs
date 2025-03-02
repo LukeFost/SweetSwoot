@@ -7,6 +7,9 @@ mod tip_record;
 mod comment;
 mod follow_relationship;
 
+// Make sure all public methods are properly re-exported here
+use service::ipfs_proxy::{proxy_ipfs_content, has_pinata_jwt_configured, set_pinata_jwt};
+
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap};
 use std::cell::RefCell;
@@ -59,4 +62,3 @@ thread_local! {
         )
     );
 }
-
