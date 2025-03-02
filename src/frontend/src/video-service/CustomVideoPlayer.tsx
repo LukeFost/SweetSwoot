@@ -41,7 +41,7 @@ export function CustomVideoPlayer({
   onProgress
 }: CustomVideoPlayerProps) {
   const actor = useActor();
-  const { getVideoUrl, betaModeEnabled, isDirectFallbackAllowed } = useVideoService();
+  const { betaModeEnabled, isDirectFallbackAllowed } = useVideoService();
   const ffmpegService = FFmpegService.getInstance();
 
   const [m3u8Url, setM3u8Url] = useState<string>('');
@@ -125,7 +125,7 @@ export function CustomVideoPlayer({
         // 1. Fetch the original video from IPFS
         // First try using the backend proxy to avoid CORS issues
         const ipfsService = IPFSService.getInstance();
-        const ipfsUrl = getVideoUrl(ipfsCid);
+        // We don't need to get the URL here since we're using the proxy
         console.log('[CustomVideoPlayer] Fetching original video from IPFS:', ipfsCid);
         
         // Variable to hold the response

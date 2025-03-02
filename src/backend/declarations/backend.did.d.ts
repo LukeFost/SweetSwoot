@@ -15,6 +15,14 @@ export type EmptyResponse = { 'Ok' : null } |
   { 'Err' : string };
 export type GetMyProfileResponse = { 'Ok' : UserProfile } |
   { 'Err' : string };
+export interface IPFSProxyError { 'message' : string, 'status_code' : number }
+export type IPFSProxyResponse = { 'Ok' : IPFSProxyResult } |
+  { 'Err' : IPFSProxyError };
+export interface IPFSProxyResult {
+  'content' : Uint8Array | number[],
+  'content_type' : string,
+  'status_code' : number,
+}
 export type ListProfilesResponse = { 'Ok' : Array<[string, UserProfile]> } |
   { 'Err' : string };
 export type Name = string;
@@ -89,6 +97,7 @@ export interface _SERVICE {
   'get_video_analytics' : ActorMethod<[VideoId], VideoAnalyticsResponse>,
   'get_video_metadata' : ActorMethod<[VideoId], VideoMetadataResponse>,
   'get_watch_events' : ActorMethod<[VideoId], Array<WatchEvent>>,
+  'has_pinata_jwt_configured' : ActorMethod<[], boolean>,
   'is_following' : ActorMethod<[Principal, Principal], boolean>,
   'list_all_videos' : ActorMethod<[], Array<VideoMetadata>>,
   'list_profiles' : ActorMethod<[], ListProfilesResponse>,
@@ -99,6 +108,7 @@ export interface _SERVICE {
     EmptyResponse
   >,
   'post_comment' : ActorMethod<[VideoId, Text], CommentResponse>,
+  'proxy_ipfs_content' : ActorMethod<[string], IPFSProxyResponse>,
   'record_tip' : ActorMethod<[VideoId, bigint, TxHash], TipRecordResponse>,
   'save_my_profile' : ActorMethod<[Name, AvatarUrl], SaveMyProfileResponse>,
   'search_videos' : ActorMethod<
@@ -108,6 +118,11 @@ export interface _SERVICE {
   'search_videos_by_tags' : ActorMethod<
     [Array<string>, [] | [number], [] | [number]],
     Array<VideoMetadata>
+  >,
+  'set_pinata_jwt' : ActorMethod<
+    [string, Principal],
+    { 'Ok' : null } |
+      { 'Err' : string }
   >,
   'unfollow_user' : ActorMethod<[Principal], EmptyResponse>,
   'update_video_metadata' : ActorMethod<

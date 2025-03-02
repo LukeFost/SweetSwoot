@@ -1,5 +1,4 @@
 import { PinataSDK } from 'pinata-web3';
-import { useActor } from '../../ic/Actors';
 
 /**
  * Service to handle IPFS video operations using Piñata SDK v0.5.4+

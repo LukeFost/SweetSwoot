@@ -1,13 +1,16 @@
-use candid::{CandidType, Deserialize};
+use candid::{CandidType, Deserialize, Principal};
 use ic_cdk::{api::{self, management_canister::http_request::{
     HttpResponse, TransformArgs, TransformContext, HttpHeader, HttpMethod, CanisterHttpRequestArgument,
-}}, export::Principal};
+}}};
 use ic_cdk_macros::{update, query};
 use serde_bytes::ByteBuf;
-use std::collections::HashMap;
+use num_traits::cast::ToPrimitive;
+use std::cell::RefCell;
 
-// Register our exports with the IC
-use ic_cdk::export::candid;
+// Global variable to store the JWT
+thread_local! {
+    static PINATA_JWT: RefCell<Option<String>> = RefCell::new(None);
+}
 
 #[derive(CandidType, Deserialize, Debug)]
 pub struct IPFSProxyResult {
@@ -35,8 +38,8 @@ pub async fn proxy_ipfs_content(cid: String) -> IPFSProxyResponse {
     let gateway_domain = "salmon-worthy-hawk-798.mypinata.cloud";
     let url = format!("https://{}/ipfs/{}", gateway_domain, cid);
     
-    // Get Pinata JWT from environment variable (would need to be set in the canister)
-    let pinata_jwt = match api::trap::global_get("PINATA_JWT") {
+    // Get Pinata JWT from thread local storage
+    let pinata_jwt = match PINATA_JWT.with(|jwt| jwt.borrow().clone()) {
         Some(jwt) => jwt,
         None => {
             return IPFSProxyResponse::Err(IPFSProxyError {
@@ -64,38 +67,50 @@ pub async fn proxy_ipfs_content(cid: String) -> IPFSProxyResponse {
         method: HttpMethod::GET,
         body: None,
         max_response_bytes: Some(10 * 1024 * 1024), // 10MB limit
-        transform: Some(TransformContext::new(
-            transform_ipfs_response, vec![], true
+        transform: Some(TransformContext::from_name(
+            "transform_ipfs_response".to_string(), 
+            vec![]
         )),
         headers: request_headers,
     };
     
     // Make HTTP request to Pinata
-    match api::management_canister::http_request::http_request(request).await {
+    match api::management_canister::http_request::http_request(request, 60_000_000_000).await {
         Ok((response,)) => {
-            if response.status >= 200 && response.status < 300 {
+            // Convert status to u32 for comparison
+            let status_code = response.status.0.to_u32().unwrap_or(0);
+            
+            if status_code >= 200 && status_code < 300 {
                 // Determine content type from response headers or default to binary
                 let content_type = response.headers.iter()
                     .find(|h| h.name.to_lowercase() == "content-type")
                     .map(|h| h.value.clone())
                     .unwrap_or_else(|| "application/octet-stream".to_string());
                 
+                // Convert BigUint status code to u16
+                let status_code = u16::try_from(response.status.0.to_u32().unwrap_or(0))
+                    .unwrap_or(0);
+                
                 IPFSProxyResponse::Ok(IPFSProxyResult {
                     content: ByteBuf::from(response.body),
                     content_type,
-                    status_code: response.status,
+                    status_code,
                 })
             } else {
+                // Convert BigUint status code to u16
+                let status_code = u16::try_from(response.status.0.to_u32().unwrap_or(0))
+                    .unwrap_or(0);
+                
                 // Handle error status codes
                 IPFSProxyResponse::Err(IPFSProxyError {
-                    message: format!("IPFS request failed with status: {}", response.status),
-                    status_code: response.status,
+                    message: format!("IPFS request failed with status: {}", response.status.0),
+                    status_code,
                 })
             }
         },
         Err((code, msg)) => {
             IPFSProxyResponse::Err(IPFSProxyError {
-                message: format!("HTTP request error: {} - {}", code, msg),
+                message: format!("HTTP request error: {:?} - {}", code, msg),
                 status_code: 500,
             })
         }
@@ -111,12 +126,12 @@ fn transform_ipfs_response(args: TransformArgs) -> HttpResponse {
 /// Get the Pinata JWT environment variable
 #[query]
 pub fn has_pinata_jwt_configured() -> bool {
-    api::trap::global_get::<String>("PINATA_JWT").is_some()
+    PINATA_JWT.with(|jwt| jwt.borrow().is_some())
 }
 
 /// Set the Pinata JWT environment variable (admin only)
 #[update]
-pub fn set_pinata_jwt(jwt: String, caller: Principal) -> Result<(), String> {
+pub fn set_pinata_jwt(jwt: String, _caller: Principal) -> Result<(), String> {
     // In a real implementation, you'd check if caller is an admin
     // This is a simplified example
     let is_admin = true; // Replace with actual admin check
@@ -125,6 +140,8 @@ pub fn set_pinata_jwt(jwt: String, caller: Principal) -> Result<(), String> {
         return Err("Only admins can set the Pinata JWT".to_string());
     }
     
-    api::trap::global_put("PINATA_JWT", jwt);
+    PINATA_JWT.with(|j| {
+        *j.borrow_mut() = Some(jwt);
+    });
     Ok(())
 }

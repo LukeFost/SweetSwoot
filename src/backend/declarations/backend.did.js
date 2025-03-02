@@ -65,6 +65,19 @@ export const idlFactory = ({ IDL }) => {
   });
   const Text = IDL.Text;
   const CommentResponse = IDL.Variant({ 'Ok' : Comment, 'Err' : IDL.Text });
+  const IPFSProxyResult = IDL.Record({
+    'content' : IDL.Vec(IDL.Nat8),
+    'content_type' : IDL.Text,
+    'status_code' : IDL.Nat16,
+  });
+  const IPFSProxyError = IDL.Record({
+    'message' : IDL.Text,
+    'status_code' : IDL.Nat16,
+  });
+  const IPFSProxyResponse = IDL.Variant({
+    'Ok' : IPFSProxyResult,
+    'Err' : IPFSProxyError,
+  });
   const TxHash = IDL.Text;
   const TipRecordResponse = IDL.Variant({ 'Ok' : TipRecord, 'Err' : IDL.Text });
   const Name = IDL.Text;
@@ -102,6 +115,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'get_watch_events' : IDL.Func([VideoId], [IDL.Vec(WatchEvent)], ['query']),
+    'has_pinata_jwt_configured' : IDL.Func([], [IDL.Bool], ['query']),
     'is_following' : IDL.Func([Principal, Principal], [IDL.Bool], ['query']),
     'list_all_videos' : IDL.Func([], [IDL.Vec(VideoMetadata)], ['query']),
     'list_profiles' : IDL.Func([], [ListProfilesResponse], ['query']),
@@ -117,6 +131,7 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'post_comment' : IDL.Func([VideoId, Text], [CommentResponse], []),
+    'proxy_ipfs_content' : IDL.Func([IDL.Text], [IPFSProxyResponse], []),
     'record_tip' : IDL.Func(
         [VideoId, IDL.Nat64, TxHash],
         [TipRecordResponse],
@@ -136,6 +151,11 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(IDL.Text), IDL.Opt(IDL.Nat32), IDL.Opt(IDL.Nat32)],
         [IDL.Vec(VideoMetadata)],
         ['query'],
+      ),
+    'set_pinata_jwt' : IDL.Func(
+        [IDL.Text, Principal],
+        [IDL.Variant({ 'Ok' : IDL.Null, 'Err' : IDL.Text })],
+        [],
       ),
     'unfollow_user' : IDL.Func([Principal], [EmptyResponse], []),
     'update_video_metadata' : IDL.Func(

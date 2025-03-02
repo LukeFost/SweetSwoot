@@ -203,6 +203,25 @@ export default function Actors({ children }: { children: ReactNode }) {
     
     // Check for specific IC canister errors that we want to handle specially
     const errorStr = String(data.error);
+    
+    // Certificate verification errors are common when the replica is restarted or state changes
+    if (errorStr.includes("certificate verification failed") || 
+        errorStr.includes("Invalid combined threshold signature") ||
+        errorStr.includes("signature could not be verified")) {
+      console.warn("IC certificate verification error - this can happen after replica restarts or state changes");
+      console.warn("Detailed error:", errorStr);
+      
+      // Don't show an error toast for these errors since they often resolve on retry
+      toast.error("Network connection issue. Retrying...", {
+        id: "certificate-error",
+        position: "bottom-right",
+        duration: 3000
+      });
+      
+      // This will be retried automatically via the retry mechanism
+      return;
+    }
+    
     if (errorStr.includes("time not implemented on this platform")) {
       console.warn("Backend canister time function error - this is expected in local development");
       // Don't show an error toast for time-related errors as they're expected in dev
