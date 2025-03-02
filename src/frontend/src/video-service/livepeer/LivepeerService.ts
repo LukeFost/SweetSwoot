@@ -108,12 +108,67 @@ export class LivepeerService {
    * Create a new Livepeer asset using IPFS URL from Pinata
    * This implementation is simplified to work with the latest SDK
    */
+  /**
+   * Convert any IPFS URL to use multiple public gateways for maximum reliability
+   * This helps ensure Livepeer can access content without authentication
+   */
+  private convertToPublicGateways(url: string): string {
+    // If not an IPFS URL, return as is
+    if (!url || (!url.includes('/ipfs/') && !url.includes('ipfs://'))) {
+      return url;
+    }
+    
+    console.log(`[LivepeerService] Converting IPFS URL to public gateways: ${url}`);
+    
+    // Extract the CID
+    let cid: string | null = null;
+    
+    // Handle ipfs:// protocol
+    if (url.startsWith('ipfs://')) {
+      cid = url.substring(7);
+    } 
+    // Handle HTTP URLs with /ipfs/ path
+    else {
+      const cidMatch = url.match(/\/ipfs\/([^/?#]+)/);
+      if (cidMatch && cidMatch[1]) {
+        cid = cidMatch[1];
+      }
+    }
+    
+    // If we couldn't extract the CID, return the original URL
+    if (!cid) {
+      console.warn(`[LivepeerService] Could not extract CID from IPFS URL: ${url}`);
+      return url;
+    }
+    
+    // Use ipfs.io as the primary gateway (most reliable)
+    // We're deliberately NOT using Pinata gateway URLs to avoid authentication issues
+    const publicUrl = `https://ipfs.io/ipfs/${cid}`;
+    
+    console.log(`[LivepeerService] Converted to public gateway:`);
+    console.log(`  Original: ${url}`);
+    console.log(`  Public:   ${publicUrl}`);
+    
+    return publicUrl;
+  }
+  
   public async createAsset(options: CreateAssetOptions): Promise<AssetCreationResponse> {
     if (!this.client) {
       throw new Error('Livepeer client not initialized');
     }
     
     try {
+      // Always ensure we're using public gateways for all IPFS URLs
+      if (options.url) {
+        const originalUrl = options.url;
+        options.url = this.convertToPublicGateways(options.url);
+        
+        // If URL changed, log it
+        if (originalUrl !== options.url) {
+          console.log(`[LivepeerService] Using public gateway URL for Livepeer import`);
+        }
+      }
+      
       // Enhanced request logging
       console.log(`[LivepeerService] Creating stream/asset with parameters:`, {
         name: options.name,
@@ -126,6 +181,21 @@ export class LivepeerService {
       });
       
       const requestStartTime = performance.now();
+      
+      // Verify URL is accessible before sending to Livepeer
+      if (options.url && typeof fetch === 'function') {
+        try {
+          console.log(`[LivepeerService] Verifying source URL accessibility: ${options.url}`);
+          const response = await fetch(options.url, { method: 'HEAD' });
+          console.log(`[LivepeerService] Source URL check: ${response.status} ${response.statusText}`);
+          
+          if (response.status !== 200) {
+            console.warn(`[LivepeerService] Warning: Source URL returned non-200 status (${response.status})`);
+          }
+        } catch (urlCheckError) {
+          console.warn(`[LivepeerService] Warning: Could not verify source URL: ${urlCheckError}`);
+        }
+      }
       
       // Use a try/catch around the specific SDK method call
       let rawResponse: any;

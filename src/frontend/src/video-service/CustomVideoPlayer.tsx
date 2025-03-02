@@ -48,6 +48,7 @@ export function CustomVideoPlayer({
   const [directVideo, setDirectVideo] = useState<DirectVideo | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState<number>(0);
   const viewLogged = useRef(false);
 
   // Log view event
@@ -233,7 +234,40 @@ export function CustomVideoPlayer({
             timeoutId = null;
           }
           
-          setFetchError(err.message || String(err));
+          // If we haven't retried too many times and this is a retriable error, try again
+          const errorMessage = err.message || String(err);
+          const isPinataJwtError = errorMessage.includes('Pinata JWT not configured') || 
+                                   errorMessage.includes('Authentication required');
+          const isNetworkError = errorMessage.includes('network') || 
+                                 errorMessage.includes('failed to fetch');
+                                 
+          // If this is a JWT configuration error or network error and we haven't retried too much
+          if ((isPinataJwtError || isNetworkError) && retryCount < 3) {
+            console.log(`[CustomVideoPlayer] Retriable error detected, retry attempt ${retryCount + 1}/3`);
+            
+            // Increment retry count
+            setRetryCount(prevCount => prevCount + 1);
+            
+            // Wait a bit before retrying - exponential backoff
+            const retryDelay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+            console.log(`[CustomVideoPlayer] Will retry in ${retryDelay}ms`);
+            
+            setTimeout(() => {
+              if (!aborted) {
+                console.log('[CustomVideoPlayer] Retrying video fetch...');
+                setLoading(true);
+                setFetchError(null);
+                processVideo(); // Recursively call our process function
+              }
+            }, retryDelay);
+            
+            return;
+          }
+          
+          // If we've reached max retries or it's not a retriable error, show the error
+          setFetchError(isPinataJwtError ? 
+            "Authentication error with IPFS. The JWT may need to be refreshed." : 
+            errorMessage);
           setLoading(false);
           if (onError) onError(err);
         }

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { IPFSService } from './ipfs/IPFSService';
 import { LivepeerService } from './livepeer/LivepeerService';
+import { useActor } from '../ic/Actors';
 
 // Interface for video metadata
 export interface VideoInfo {
@@ -50,63 +51,137 @@ export function VideoServiceProvider({ children }: VideoServiceProviderProps) {
   const ipfsService = IPFSService.getInstance();
   const livepeerService = LivepeerService.getInstance();
   
-  // Initialize services
-  useEffect(() => {
-    const initServices = async () => {
-      setIsLoading(true);
-      try {
-        // Initialize Piñata SDK with JWT from environment variables
-        const pinataInitPromise = async () => {
+  // Get the backend actor
+  const actor = useActor();
+  
+      // Set the actor reference in IPFSService
+      useEffect(() => {
+        if (actor) {
+          IPFSService.setActor(actor);
+        }
+      }, [actor]);
+
+      // Initialize services
+      useEffect(() => {
+        const initServices = async () => {
+          setIsLoading(true);
           try {
-            const pinataJWT = import.meta.env.VITE_PINATA_JWT;
-            const gatewayUrl = import.meta.env.VITE_GATEWAY_URL;
-            
-            console.log('[VideoServiceProvider] Environment check:');
-            console.log(`- VITE_PINATA_JWT: ${pinataJWT ? 'Configured ✅' : 'Not configured ❌'}`);
-            console.log(`- VITE_GATEWAY_URL: ${gatewayUrl ? 'Configured ✅' : 'Optional, not configured'}`);
-            
-            if (!pinataJWT) {
-              console.error('[VideoServiceProvider] CRITICAL ERROR: Piñata JWT not configured! ❌');
-              console.error('Please add your Piñata JWT to .env.local as VITE_PINATA_JWT=your_jwt_here');
-              console.error('You can also add VITE_GATEWAY_URL=your-gateway-domain.mypinata.cloud');
-              console.error('See docs/PINATA_SETUP.md for detailed instructions');
-              
-              // Still set the loading to false but mark IPFS as not ready
-              setIpfsReady(false);
-              return;
-            }
-            
-            // Validate the JWT format has at least basic JWT structure
-            if (!pinataJWT.includes('.') || pinataJWT.length < 20) {
-              console.error('[VideoServiceProvider] Invalid JWT format detected! ❌');
-              console.error('Your VITE_PINATA_JWT appears to be incorrectly formatted.');
-              console.error('JWTs typically contain dots and are longer than 20 characters.');
-              setIpfsReady(false);
-              return;
-            }
-            
-            try {
-              // Set JWT and initialize the SDK
-              await ipfsService.setPinataJWT(pinataJWT);
-              
-              // Check if initialization was successful
-              if (ipfsService.isPinataConfigured()) {
-                setIpfsReady(true);
-                console.log('[VideoServiceProvider] Piñata SDK initialized successfully ✅');
-              } else {
-                console.warn('[VideoServiceProvider] Piñata SDK initialization failed ❌');
-                console.warn('Check your JWT permissions and expiry date.');
+            // Initialize Piñata SDK with JWT from environment variables
+            const pinataInitPromise = async () => {
+              try {
+                const pinataJWT = import.meta.env.VITE_PINATA_JWT;
+                const gatewayUrl = import.meta.env.VITE_GATEWAY_URL;
+                
+                console.log('[VideoServiceProvider] Environment check:');
+                console.log(`- VITE_PINATA_JWT: ${pinataJWT ? 'Configured ✅' : 'Not configured ❌'}`);
+                console.log(`- VITE_GATEWAY_URL: ${gatewayUrl ? 'Configured ✅' : 'Optional, not configured'}`);
+                
+                if (!pinataJWT) {
+                  console.error('[VideoServiceProvider] CRITICAL ERROR: Piñata JWT not configured! ❌');
+                  console.error('Please add your Piñata JWT to .env.local as VITE_PINATA_JWT=your_jwt_here');
+                  console.error('You can also add VITE_GATEWAY_URL=your-gateway-domain.mypinata.cloud');
+                  console.error('See docs/PINATA_SETUP.md for detailed instructions');
+                  
+                  // Still set the loading to false but mark IPFS as not ready
+                  setIpfsReady(false);
+                  return;
+                }
+                
+                // Validate the JWT format has at least basic JWT structure
+                if (!pinataJWT.includes('.') || pinataJWT.length < 20) {
+                  console.error('[VideoServiceProvider] Invalid JWT format detected! ❌');
+                  console.error('Your VITE_PINATA_JWT appears to be incorrectly formatted.');
+                  console.error('JWTs typically contain dots and are longer than 20 characters.');
+                  setIpfsReady(false);
+                  return;
+                }
+                
+                try {
+                  // Set JWT and initialize the SDK
+                  await ipfsService.setPinataJWT(pinataJWT);
+                  
+                  // Set the JWT in the backend as well to enable backend proxy
+                  if (actor) {
+                    console.log('[VideoServiceProvider] Actor available, checking for set_pinata_jwt method...');
+                    console.log('[VideoServiceProvider] Actor methods:', Object.keys(actor));
+                    
+                    const setPinataJwtMethod = actor.set_pinata_jwt;
+                    if (typeof setPinataJwtMethod === 'function') {
+                      try {
+                        console.log('[VideoServiceProvider] Setting Pinata JWT in backend proxy...');
+                        
+                        // The backend expects two parameters: JWT and caller principal
+                        // But we can just pass the JWT as the API will handle the caller automatically
+                        await setPinataJwtMethod(pinataJWT);
+                        
+                        // Check if JWT was actually set by calling has_pinata_jwt_configured
+                        if (actor.has_pinata_jwt_configured && typeof actor.has_pinata_jwt_configured === 'function') {
+                          const isConfigured = await actor.has_pinata_jwt_configured();
+                          console.log(`[VideoServiceProvider] JWT configuration status: ${isConfigured ? '✅ Configured' : '❌ Not configured'}`);
+                          
+                          if (isConfigured) {
+                            console.log('[VideoServiceProvider] Backend proxy JWT set successfully ✅');
+                          } else {
+                            throw new Error('JWT was not successfully stored in backend');
+                          }
+                        } else {
+                          console.log('[VideoServiceProvider] Backend proxy JWT set (but unable to verify) ⚠️');
+                        }
+                      } catch (backendJwtError) {
+                        console.warn('[VideoServiceProvider] Failed to set JWT in backend:', backendJwtError);
+                        console.warn('Backend proxy may not be able to fetch protected IPFS content');
+                        
+                        // Try again with an explicitly destructured call to avoid parameter issues
+                        try {
+                          console.log('[VideoServiceProvider] Retrying with explicit destructuring...');
+                          
+                          // Get the actual function and call it directly
+                          if (actor.actor && typeof actor.actor.set_pinata_jwt === 'function') {
+                            await actor.actor.set_pinata_jwt(pinataJWT);
+                            console.log('[VideoServiceProvider] Backend proxy JWT set via actor.actor ✅');
+                          }
+                        } catch (retryError) {
+                          console.error('[VideoServiceProvider] Retry also failed:', retryError);
+                        }
+                      }
+                    } else {
+                      console.warn('[VideoServiceProvider] set_pinata_jwt method not found on actor');
+                      console.warn('This will prevent backend proxy access to protected IPFS content');
+                      
+                      // Try accessing the method directly on actor.actor if it exists
+                      if (actor.actor && typeof actor.actor.set_pinata_jwt === 'function') {
+                        try {
+                          console.log('[VideoServiceProvider] Found set_pinata_jwt on actor.actor, calling directly...');
+                          await actor.actor.set_pinata_jwt(pinataJWT);
+                          console.log('[VideoServiceProvider] Backend proxy JWT set via actor.actor ✅');
+                        } catch (nestedError) {
+                          console.error('[VideoServiceProvider] Failed to set JWT via actor.actor:', nestedError);
+                        }
+                      }
+                    }
+                  } else {
+                    console.warn('[VideoServiceProvider] Backend actor not available');
+                    console.warn('This will prevent backend proxy access to protected IPFS content');
+                  }
+                  
+                  // Check if initialization was successful
+                  if (ipfsService.isPinataConfigured()) {
+                    setIpfsReady(true);
+                    console.log('[VideoServiceProvider] Piñata SDK initialized successfully ✅');
+                  } else {
+                    console.warn('[VideoServiceProvider] Piñata SDK initialization failed ❌');
+                    console.warn('Check your JWT permissions and expiry date.');
+                  }
+                } catch (initError) {
+                  console.error('[VideoServiceProvider] Piñata initialization error:', initError);
+                  console.error('Check your JWT and gateway configuration and try again.');
+                  setIpfsReady(false);
+                }
+              } catch (error) {
+                console.error('[VideoServiceProvider] Critical Piñata init error:', error);
+                setIpfsReady(false);
               }
-            } catch (initError) {
-              console.error('[VideoServiceProvider] Piñata initialization error:', initError);
-              console.error('Check your JWT and gateway configuration and try again.');
-              setIpfsReady(false);
-            }
-          } catch (error) {
-            console.error('[VideoServiceProvider] Critical Piñata init error:', error);
-            setIpfsReady(false);
-          }
-        };
+            };
         
         // Initialize Livepeer
         const livepeerInitPromise = async () => {

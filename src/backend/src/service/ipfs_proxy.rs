@@ -38,16 +38,28 @@ pub async fn proxy_ipfs_content(cid: String) -> IPFSProxyResponse {
     let gateway_domain = "salmon-worthy-hawk-798.mypinata.cloud";
     let url = format!("https://{}/ipfs/{}", gateway_domain, cid);
     
-    // Get Pinata JWT from thread local storage
+    // Get Pinata JWT from thread local storage and validate it
     let pinata_jwt = match PINATA_JWT.with(|jwt| jwt.borrow().clone()) {
-        Some(jwt) => jwt,
+        Some(jwt) => {
+            // Validate the JWT has proper format
+            if !jwt.contains('.') || jwt.len() < 20 {
+                return IPFSProxyResponse::Err(IPFSProxyError {
+                    message: "Invalid Pinata JWT format. JWT should contain dots and be longer than 20 characters.".to_string(),
+                    status_code: 500,
+                });
+            }
+            jwt
+        },
         None => {
             return IPFSProxyResponse::Err(IPFSProxyError {
-                message: "Pinata JWT not configured".to_string(),
+                message: "Pinata JWT not configured. Call set_pinata_jwt to configure it.".to_string(),
                 status_code: 500,
             })
         }
     };
+    
+    // Log that we're attempting to proxy content (helps with debugging)
+    ic_cdk::println!("Proxying IPFS content for CID: {}", cid);
     
     // Add authentication headers
     let request_headers = vec![
@@ -130,18 +142,29 @@ pub fn has_pinata_jwt_configured() -> bool {
 }
 
 /// Set the Pinata JWT environment variable (admin only)
+/// Note: The caller parameter is automatically filled in by the IC system, so we don't need to require it
 #[update]
-pub fn set_pinata_jwt(jwt: String, _caller: Principal) -> Result<(), String> {
-    // In a real implementation, you'd check if caller is an admin
-    // This is a simplified example
-    let is_admin = true; // Replace with actual admin check
+pub fn set_pinata_jwt(jwt: String) -> Result<(), String> {
+    // Validate the JWT has a valid format
+    if !jwt.contains('.') || jwt.len() < 20 {
+        return Err("Invalid JWT format. JWT should contain dots and be longer than 20 characters.".to_string());
+    }
+    
+    // In a real implementation, you might check if caller is an admin
+    // This is a simplified example - we're allowing any caller to set the JWT for now
+    let is_admin = true; // Replace with actual admin check in production
     
     if !is_admin {
         return Err("Only admins can set the Pinata JWT".to_string());
     }
     
+    // Set the JWT in the thread-local storage
     PINATA_JWT.with(|j| {
-        *j.borrow_mut() = Some(jwt);
+        *j.borrow_mut() = Some(jwt.clone());
+        
+        // Log that the JWT was set (for debugging)
+        ic_cdk::println!("Pinata JWT configured successfully. JWT Length: {}", jwt.len());
     });
+    
     Ok(())
 }

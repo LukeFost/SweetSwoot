@@ -55,6 +55,7 @@ export function LivepeerPlayer({
   const hlsRef = useRef<Hls | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [useCustomFallback, setUseCustomFallback] = useState(false);
+  const [failureCount, setFailureCount] = useState(0);
   const [isBuffering, setIsBuffering] = useState<boolean>(false);
   const [currentQuality, setCurrentQuality] = useState<string>('auto');
   const [availableQualities, setAvailableQualities] = useState<string[]>([]);
@@ -276,54 +277,89 @@ export function LivepeerPlayer({
                 
                 // Check specifically for manifest parsing errors
                 if (data.details === 'manifestParsingError' || data.details === 'manifestLoadError') {
-                  console.error('[LivepeerPlayer] HLS Manifest parsing error - switching to custom player fallback');
+                  console.error('[LivepeerPlayer] HLS Manifest parsing error - this may be because the stream is still processing');
                   console.error('[LivepeerPlayer] Manifest URL attempted:', src);
                   console.error('[LivepeerPlayer] Response details:', data.response || 'No response data');
                   
-                  // Try HEAD request to test URL directly
+                  // Check if this looks like a "Stream open failed" error from LivePeer
+                  const isStreamOpenFailed = data.response && 
+                    typeof data.response.text === 'string' && 
+                    data.response.text.includes('Stream open failed');
+                  
+                  // Increment the failure count
+                  setFailureCount(prev => prev + 1);
+                  
+                  // If we see a "Stream open failed" error, immediately switch to fallback
+                  // This indicates that Livepeer can't access our IPFS content
+                  if (isStreamOpenFailed) {
+                    console.log('[LivepeerPlayer] Stream open failed detected, switching to fallback immediately');
+                    setError('Stream open failed - switching to direct playback');
+                    setUseCustomFallback(true);
+                    hls.destroy();
+                    return;
+                  }
+                  
+                  // Set a more informative error message
+                  setError('Stream is still processing. Retrying in 3 seconds...');
+                  
+                  // If we've already tried multiple times, go to fallback immediately
+                  if (failureCount >= 1) { // Reduced from 2 to 1 to fail faster
+                    console.log(`[LivepeerPlayer] Failed ${failureCount} times, switching to fallback immediately`);
+                    setError('Stream processing error - switching to direct playback');
+                    setUseCustomFallback(true);
+                    hls.destroy();
+                    return;
+                  }
+                  
+                  // Set a timeout to retry after a shorter time
+                  setTimeout(() => {
+                    console.log('[LivepeerPlayer] Retrying stream playback after delay...');
+                    
+                    // If we're not already destroyed, retry loading the source
+                    if (hlsRef.current) {
+                      hlsRef.current.loadSource(src);
+                      setError('Retrying stream playback...');
+                      return; // Don't fall back yet
+                    } else {
+                      // If hls was already destroyed, just use fallback
+                      setUseCustomFallback(true);
+                    }
+                  }, 3000); // Reduced to 3 seconds instead of 5
+                } else {
+                  // For other manifest errors, try HEAD request to test URL directly
                   if (typeof fetch === 'function') {
                     console.log('[LivepeerPlayer] Testing manifest URL directly...');
                     fetch(src, { method: 'HEAD' })
                       .then(response => {
                         console.log(`[LivepeerPlayer] Direct HEAD request status: ${response.status} ${response.statusText}`);
+                        
+                        // Even if HEAD request works, if we've had a failure already, use fallback
+                        if (failureCount >= 1) {
+                          console.log(`[LivepeerPlayer] Despite HEAD success, failed already, using fallback`);
+                          setUseCustomFallback(true);
+                        }
                       })
                       .catch(error => {
                         console.error(`[LivepeerPlayer] Direct HEAD request failed: ${error.message}`);
+                        setUseCustomFallback(true);
                       });
+                  } else {
+                    // No fetch available, just use fallback
+                    setUseCustomFallback(true);
                   }
                   
                   setError('Manifest error - attempting fallback player');
-                  setUseCustomFallback(true);
-                  setIsBuffering(false);
-                  if (onBuffering) onBuffering(false);
-                  hls.destroy();
-                } 
-                // Handle 401/403 errors from Livepeer CDN
-                else if (data.response && (data.response.code === 401 || data.response.code === 403)) {
-                  console.error('[LivepeerPlayer] Authentication error with Livepeer CDN:', {
-                    code: data.response.code,
-                    text: data.response.text,
-                    url: data.response.url
-                  });
-                  setError('Authentication error - attempting fallback player');
-                  setUseCustomFallback(true);
-                  setIsBuffering(false);
-                  if (onBuffering) onBuffering(false);
-                  hls.destroy();
+                  
+                  // If we've already had a failure, use fallback immediately
+                  if (failureCount >= 1) {
+                    setUseCustomFallback(true);
+                  }
                 }
-                else {
-                  // For other network errors, try to recover
-                  console.log('[LivepeerPlayer] Attempting to recover from network error');
-                  console.log('[LivepeerPlayer] Network error details:', {
-                    details: data.details,
-                    url: data.url,
-                    response: data.response
-                  });
-                  setIsBuffering(true);
-                  if (onBuffering) onBuffering(true);
-                  hls.startLoad();
-                }
+                setIsBuffering(false);
+                if (onBuffering) onBuffering(false);
+                hls.destroy();
                 break;
+              // Handle 401/403 errors from Livepeer CDN
               case Hls.ErrorTypes.MEDIA_ERROR:
                 console.error('[LivepeerPlayer] Media error:', data);
                 // Try to recover from media errors
@@ -399,7 +435,7 @@ export function LivepeerPlayer({
       // Reset logged view flag when unmounting
       viewLogged.current = false;
     };
-  }, [src, autoPlay]);
+  }, [src, autoPlay, onBuffering, onError, onQualityChanged, videoId]);
   
   // Setup event handlers
   useEffect(() => {
@@ -443,41 +479,27 @@ export function LivepeerPlayer({
   
   // Check if we should use CustomVideoPlayer as fallback
   if (useCustomFallback && videoId) {
-    // Only allow fallback if beta mode allows it
-    if (isDirectFallbackAllowed()) {
-      console.log('[LivepeerPlayer] Using CustomVideoPlayer as fallback for videoId:', videoId);
-      return (
-        <div className={className}>
-          <div className="text-amber-400 text-xs px-2 py-1 bg-black bg-opacity-70 absolute top-0 right-0 z-10 rounded-bl">
-            Using fallback player {betaModeEnabled && '(Beta Mode)'}
-          </div>
-          <CustomVideoPlayer
-            videoId={videoId}
-            autoPlay={autoPlay}
-            loop={loop}
-            onPlay={onPlay}
-            onPause={onPause}
-            onEnded={onEnded}
-            onError={onError}
-            onProgress={onProgress}
-            className={className}
-          />
+    // Always allow fallback when explicitly needed, regardless of beta mode
+    // This ensures playback works even in production mode
+    console.log('[LivepeerPlayer] Using CustomVideoPlayer as fallback for videoId:', videoId);
+    return (
+      <div className={className}>
+        <div className="text-amber-400 text-xs px-2 py-1 bg-black bg-opacity-70 absolute top-0 right-0 z-10 rounded-bl">
+          {betaModeEnabled ? 'Using fallback player (Beta Mode)' : 'Using fallback player'}
         </div>
-      );
-    } else {
-      // In non-beta mode, we show an error but don't use fallback
-      console.log('[LivepeerPlayer] Fallback not allowed in non-beta mode');
-      return (
-        <div className={`flex flex-col items-center justify-center bg-black text-white p-4 ${className}`}>
-          <p className="text-red-400 mb-2">
-            {error || 'Livepeer playback failed. Direct fallback is disabled in production mode.'}
-          </p>
-          <p className="text-xs text-gray-400 mb-4">
-            Please try again later or contact support if the issue persists.
-          </p>
-        </div>
-      );
-    }
+        <CustomVideoPlayer
+          videoId={videoId}
+          autoPlay={autoPlay}
+          loop={loop}
+          onPlay={onPlay}
+          onPause={onPause}
+          onEnded={onEnded}
+          onError={onError}
+          onProgress={onProgress}
+          className={className}
+        />
+      </div>
+    );
   }
   
   // If there's an error (but we're not using fallback), display it
@@ -493,11 +515,6 @@ export function LivepeerPlayer({
             >
               Try alternate player
             </button>
-            {!isDirectFallbackAllowed() && (
-              <p className="text-xs text-gray-400 mt-2">
-                Note: Alternative player may not work in production mode
-              </p>
-            )}
           </>
         )}
       </div>

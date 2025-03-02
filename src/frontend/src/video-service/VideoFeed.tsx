@@ -19,6 +19,14 @@ export function VideoFeed({ tag, className = '', onVideoSelect }: VideoFeedProps
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [visibleVideoIndex, setVisibleVideoIndex] = useState<number>(0);
+  
+  // Move all useRef hooks to the top level to follow React's Rules of Hooks
+  const prevFetchIdRef = useRef<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const videoRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const loaderRef = useRef<HTMLDivElement>(null);
+  const viewLogged = useRef(false);
   
   // Function to load more videos
   const loadMoreVideos = async () => {
@@ -213,8 +221,7 @@ export function VideoFeed({ tag, className = '', onVideoSelect }: VideoFeedProps
     }
   };
 
-  // Create a ref to track previous fetch parameters
-  const prevFetchIdRef = useRef<string | null>(null);
+  // Ref to track previous fetch parameters
   
   // Create placeholders for testing purposes when no videos are found
   const createPlaceholderVideos = () => {
@@ -275,18 +282,16 @@ export function VideoFeed({ tag, className = '', onVideoSelect }: VideoFeedProps
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actor, tag]);
   
-  // Add effect to handle error fallback
+  // Combine error and empty videos fallback into a single useEffect
   useEffect(() => {
+    // Error fallback
     if (error) {
       console.log("Error detected, using placeholder videos");
       setVideos(createPlaceholderVideos());
       setError(null);
     }
-  }, [error]);
-
-  // Add effect to handle empty videos fallback
-  useEffect(() => {
-    if (!loading && videos.length === 0 && !error) {
+    // Empty videos fallback (only runs if no error)
+    else if (!loading && videos.length === 0) {
       console.log("No videos found, using placeholder videos");
       setVideos(createPlaceholderVideos());
     }
@@ -319,11 +324,7 @@ export function VideoFeed({ tag, className = '', onVideoSelect }: VideoFeedProps
   }
   
   
-  // New logic for scroll-based video playback and infinite loading
-  const containerRef = useRef<HTMLDivElement>(null);
-  const videoRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const loaderRef = useRef<HTMLDivElement>(null);
-  const [visibleVideoIndex, setVisibleVideoIndex] = useState<number>(0);
+  // Logic for scroll-based video playback and infinite loading
   
   // Set up intersection observer for videos (playback)
   useEffect(() => {

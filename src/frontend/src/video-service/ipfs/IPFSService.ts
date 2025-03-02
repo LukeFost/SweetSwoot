@@ -78,7 +78,8 @@ export class IPFSService {
         throw new Error('Pinata SDK upload.file method not found. Make sure you are using pinata-web3 SDK v0.5.4+');
       }
       
-      // Add metadata
+      // Add metadata and set content to be public
+      console.log(`[IPFSService] Setting file to be publicly accessible...`);
       const result = await (this.pinataSDK as any).upload
         .file(file)
         .addMetadata({
@@ -87,6 +88,11 @@ export class IPFSService {
             app: 'ShawtyFormVideo',
             type: 'video',
             timestamp: Date.now().toString(),
+          }
+        })
+        .addPinataOptions({
+          accessControl: {
+            access: 'public' // Make content publicly accessible
           }
         });
         
@@ -170,19 +176,61 @@ export class IPFSService {
   }
 
   /**
+   * Generate a public gateway URL for IPFS content
+   * This uses ipfs.io which doesn't require authentication for public content
+   * @param cid The CID of the file
+   * @returns The public gateway URL
+   */
+  public getPublicGatewayUrl(cid: string): string {
+    if (!cid) return '';
+
+    // Remove ipfs:// prefix if present
+    if (cid.startsWith('ipfs://')) {
+      cid = cid.substring(7);
+    }
+
+    // Use ipfs.io as a reliable public gateway
+    return `https://ipfs.io/ipfs/${cid}`;
+  }
+
+  /**
    * Fetch data from IPFS gateway without Authorization header
    * Recommended for public resources to avoid CORS issues
    * @param cid The CID of the file to fetch
    * @returns Promise resolving to the fetched data
    */
   public async fetchPublicResource(cid: string): Promise<Response> {
-    const url = await this.getGatewayUrl(cid);
-    
-    // Fetch without Authorization header for public resources
-    return fetch(url, {
-      method: 'GET',
-      // No Authorization header for public resources
-    });
+    // First try with Pinata gateway
+    try {
+      const url = await this.getGatewayUrl(cid);
+      
+      // Fetch without Authorization header for public resources
+      const response = await fetch(url, {
+        method: 'GET',
+        // No Authorization header for public resources
+      });
+      
+      if (response.ok) {
+        return response;
+      }
+      
+      // If failed with 401/403, try public gateway
+      if (response.status === 401 || response.status === 403) {
+        throw new Error(`Authentication required: ${response.status}`);
+      }
+      
+      return response;
+    } catch (error) {
+      console.log(`[IPFSService] Pinata gateway fetch failed, trying public gateway: ${error}`);
+      
+      // Try with public gateway as fallback
+      const publicUrl = this.getPublicGatewayUrl(cid);
+      console.log(`[IPFSService] Trying public gateway: ${publicUrl}`);
+      
+      return fetch(publicUrl, {
+        method: 'GET'
+      });
+    }
   }
 
   /**
@@ -253,6 +301,13 @@ export class IPFSService {
   public async fetchViaBackendProxy(cid: string): Promise<Response> {
     if (!IPFSService.hasActor()) {
       console.warn('[IPFSService] Backend actor not available for proxy request, falling back to direct fetch');
+      return this.fetchPublicResource(cid);
+    }
+
+    // Check if the proxy_ipfs_content method exists
+    if (!IPFSService.actorInstance.proxy_ipfs_content || 
+        typeof IPFSService.actorInstance.proxy_ipfs_content !== 'function') {
+      console.warn('[IPFSService] proxy_ipfs_content method not available on actor, falling back to direct fetch');
       return this.fetchPublicResource(cid);
     }
 
