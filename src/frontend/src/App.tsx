@@ -3,7 +3,7 @@ import DesktopLayout from "./components/layout/DesktopLayout";
 import MobileLayout from "./components/layout/MobileLayout";
 import LoginPage from "./components/login/LoginPage";
 import { useSiwe } from "ic-siwe-js/react";
-import { LivepeerProvider } from "./livepeer";
+import { VideoServiceProvider } from "./video-service/VideoServiceProvider";
 
 function App() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -37,7 +37,7 @@ function App() {
   }
 
   return (
-    <LivepeerProvider>
+    <VideoServiceProvider>
       <div className="flex flex-col w-full min-h-screen bg-zinc-900">
         {isMobile ? (
           <MobileLayout onLoginClick={handleLoginClick} isAuthenticated={isAuthenticated} />
@@ -45,7 +45,7 @@ function App() {
           <DesktopLayout onLoginClick={handleLoginClick} isAuthenticated={isAuthenticated} />
         )}
       </div>
-    </LivepeerProvider>
+    </VideoServiceProvider>
   );
 }
 

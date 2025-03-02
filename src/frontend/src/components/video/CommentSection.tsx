@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useActor } from '../../ic/Actors';
 import { useSiwe } from 'ic-siwe-js/react';
-import { BackendExtended } from '../../livepeer/types';
 import { formatDistanceToNow } from 'date-fns';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHeart, faReply } from '@fortawesome/free-solid-svg-icons';
+
+// Define BackendExtended type locally
+interface BackendExtended {
+  getComments: (videoId: string) => Promise<any[]>;
+  postComment: (videoId: string, text: string) => Promise<any>;
+}
 
 interface Comment {
   commenter_principal: string;

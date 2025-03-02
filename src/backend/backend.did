@@ -103,6 +103,23 @@ type VideoAnalyticsResponse = variant {
   Err : text;
 };
 
+// IPFS Proxy Response Types
+type IPFSProxyResult = record {
+  content : blob;
+  content_type : text;
+  status_code : nat16;
+};
+
+type IPFSProxyError = record {
+  message : text;
+  status_code : nat16;
+};
+
+type IPFSProxyResponse = variant {
+  Ok : IPFSProxyResult;
+  Err : IPFSProxyError;
+};
+
 service : () -> {
   // User Profile
   "get_my_profile" : () -> (GetMyProfileResponse) query;
@@ -146,4 +163,9 @@ service : () -> {
   "get_followers" : (Principal) -> (vec Principal) query;
   "get_following" : (Principal) -> (vec Principal) query;
   "is_following" : (Principal, Principal) -> (bool) query;
+  
+  // IPFS Proxy
+  "proxy_ipfs_content" : (text) -> (IPFSProxyResponse);
+  "has_pinata_jwt_configured" : () -> (bool) query;
+  "set_pinata_jwt" : (text, Principal) -> (variant { Ok; Err : text });
 };

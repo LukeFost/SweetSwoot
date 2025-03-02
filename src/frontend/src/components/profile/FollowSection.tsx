@@ -1,10 +1,23 @@
 import { useState, useEffect } from 'react';
 import { Principal } from '@dfinity/principal';
 import { useActor } from '../../ic/Actors';
-import { BackendExtended, UserProfile } from '../../livepeer/types';
 import { twMerge } from 'tailwind-merge';
 import { FollowButton } from '../ui/FollowButton';
 import { useSiwe } from 'ic-siwe-js/react';
+
+// Define types locally
+interface UserProfile {
+  evm_address: string;
+  name: string;
+  avatar_url: string;
+  principal?: string;
+}
+
+interface BackendExtended {
+  getFollowers: (principal: Principal) => Promise<Principal[]>;
+  getFollowing: (principal: Principal) => Promise<Principal[]>;
+  listProfiles: () => Promise<any>;
+}
 
 type TabType = 'followers' | 'following';
 

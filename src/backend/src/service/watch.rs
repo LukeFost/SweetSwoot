@@ -19,11 +19,8 @@ pub fn log_watch_event(
         Ok(())
     })?;
 
-    // Generate timestamp
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards")
-        .as_secs();
+    // Generate timestamp using IC time instead of SystemTime
+    let timestamp = ic_cdk::api::time() / 1_000_000_000; // Convert nanoseconds to seconds
 
     // Create watch event
     let event = WatchEvent {

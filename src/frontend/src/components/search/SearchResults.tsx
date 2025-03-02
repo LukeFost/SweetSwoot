@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSearch } from '../../context/SearchContext';
-import { VideoPlayer } from '../../livepeer';
+import { VideoPlayer } from '../../video-service';
 // Define Tag type locally
 type Tag = string;
 
@@ -27,6 +27,7 @@ export const SearchResults: React.FC = () => {
           <div key={video.video_id} className="border rounded-lg overflow-hidden">
             <VideoPlayer 
               videoId={video.video_id}
+              src={`https://livepeercdn.studio/hls/${video.video_id}/index.m3u8`}
             />
             <div className="p-3">
               <h3 className="font-semibold">{video.title}</h3>

@@ -1,8 +1,9 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_LIVEPEER_API_KEY: string;
-  // Add other environment variables as needed
+  // Add environment variables as needed
+  readonly VITE_PINATA_JWT?: string;
+  readonly VITE_GATEWAY_URL?: string;
 }
 
 interface ImportMeta {

@@ -6,7 +6,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import Button from '../ui/Button';
 import { AccountDialog } from '../AccountDialog';
-import { VideoFeed, VideoUpload } from '../../livepeer';
+import { VideoFeed, VideoUpload } from '../../video-service';
 import { VideoGrid } from '../video/VideoGrid';
 import { useSiwe } from 'ic-siwe-js/react';
 import { SimpleSearch } from '../search/SimpleSearch';

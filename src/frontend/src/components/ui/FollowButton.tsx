@@ -2,8 +2,14 @@ import { useState, useEffect } from 'react';
 import { Principal } from '@dfinity/principal';
 import { useSiwe } from 'ic-siwe-js/react';
 import { useActor } from '../../ic/Actors';
-import { BackendExtended } from '../../livepeer/types';
 import { twMerge } from 'tailwind-merge';
+
+// Define BackendExtended type locally
+interface BackendExtended {
+  followUser: (principal: Principal) => Promise<{ Ok: null } | { Err: string }>;
+  unfollowUser: (principal: Principal) => Promise<{ Ok: null } | { Err: string }>;
+  isFollowing: (follower: Principal, followed: Principal) => Promise<boolean>;
+}
 
 type FollowButtonSize = 'sm' | 'md' | 'lg';
 

@@ -9,7 +9,7 @@ import AddressPill from '../AddressPill';
 import { useAccount } from 'wagmi';
 import Button from '../ui/Button';
 import { AccountDialog } from '../AccountDialog';
-import { VideoFeed, VideoUpload } from '../../livepeer';
+import { VideoFeed, VideoUpload } from '../../video-service';
 import { useSiwe } from 'ic-siwe-js/react';
 import { VideoViewPage } from '../video/VideoViewPage';
 import { VideoGrid } from '../video/VideoGrid';

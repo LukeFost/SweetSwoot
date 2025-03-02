@@ -7,3 +7,4 @@ pub mod tips;
 pub mod comments;
 pub mod follows;
 pub mod search;
+pub mod ipfs_proxy;

@@ -3,6 +3,7 @@ import { useActor } from '../../ic/Actors';
 // BackendExtended no longer needed with our proxy
 import { twMerge } from 'tailwind-merge';
 import { formatDistanceToNow } from 'date-fns';
+import { VideoPlayer } from '../../video-service';
 
 interface VideoGridProps {
   tag?: string;
@@ -43,20 +44,21 @@ export function VideoGrid({ tag, className = '', onVideoSelect }: VideoGridProps
         // Try using the properly fixed actor methods for all videos
         try {
           console.log('Getting all videos in VideoGrid (tag is undefined or "All")');
-          // Make sure we call the method correctly
-          console.log("About to call list_all_videos in VideoGrid");
-          // @ts-ignore - we know this exists from the backend.did file 
-          if (actor.actor && typeof actor.actor.list_all_videos === 'function') {
-            console.log("Using actor.actor.list_all_videos directly in VideoGrid");
-            // @ts-ignore - we know this exists
-            videoList = await actor.actor.list_all_videos();
-          } // @ts-ignore - we know this exists
-          else if (typeof actor.list_all_videos === 'function') {
-            console.log("Using actor.list_all_videos directly in VideoGrid");
-            // @ts-ignore - we know this exists
-            videoList = await actor.list_all_videos();
-          } else {
-            console.error("list_all_videos method not found on actor in VideoGrid");
+          
+          // First try to call search_videos with an empty query as fallback
+          try {
+            console.log("Trying to use search_videos with empty query as fallback");
+            // @ts-ignore - Backend method
+            if (actor.search_videos && typeof actor.search_videos === 'function') {
+              console.log("Using search_videos with empty string to get all videos");
+              // @ts-ignore - Backend method
+              videoList = await actor.search_videos("", [], []);
+            } else {
+              console.warn("search_videos method not found on actor");
+              videoList = [];
+            }
+          } catch (searchErr) {
+            console.error("Error using search_videos fallback:", searchErr);
             videoList = [];
           }
           console.log("Successfully loaded videos:", videoList);
@@ -131,25 +133,38 @@ export function VideoGrid({ tag, className = '', onVideoSelect }: VideoGridProps
     }
   };
 
-  // Get video thumbnail from storage_ref
+  // Get video thumbnail based on Livepeer's recommended method
   const getVideoThumbnail = (video: any) => {
-    // Handle the optional (opt) storage_ref from Candid
-    if (!video.storage_ref || !video.storage_ref[0]) return '/default-thumbnail.jpg';
+    console.log('Getting thumbnail for video:', video);
     
-    const storageRefValue = video.storage_ref[0];
-    
-    // If LivePeer, use a generic thumbnail for now
-    // The Livepeer CDN paths aren't working correctly
-    if (storageRefValue.startsWith('livepeer:')) {
-      // Instead of trying to use the actual thumbnail URL which isn't working:
-      // const playbackId = storageRefValue.substring(9);
-      // return `https://livepeercdn.com/asset/${playbackId}/thumbnail.jpg`;
-      
-      // Use a placeholder gradient or default image instead
-      return '/header.png';
+    // Check if we have a video_id that can be used as a playback ID
+    if (video.video_id) {
+      // Using Livepeer's recommended approach for thumbnails
+      // This uses the first frame (keyframes_0.jpg) which is a reliable preview image
+      return `https://vod-cdn.lp-playback.studio/hls/${video.video_id}/thumbnails/keyframes_0.jpg`;
     }
     
-    return '/default-thumbnail.jpg';
+    // Fallback to IPFS if we have a storage reference
+    if (video.storage_ref) {
+      const storageRef = Array.isArray(video.storage_ref) 
+        ? video.storage_ref[0] 
+        : typeof video.storage_ref === 'string' 
+          ? video.storage_ref 
+          : null;
+      
+      if (storageRef) {
+        // If IPFS reference with prefix
+        if (storageRef.startsWith('ipfs:')) {
+          const cid = storageRef.substring(5);
+          // Get the gateway URL from the environment
+          const gatewayDomain = import.meta.env.VITE_GATEWAY_URL || 'salmon-worthy-hawk-798.mypinata.cloud';
+          return `https://${gatewayDomain}/ipfs/${cid}/thumbnail.jpg`;
+        }
+      }
+    }
+    
+    // Add default fallback thumbnail
+    return '/header.png';
   };
 
   // Add debug statement to check state before rendering and identify which branch will be rendered
@@ -208,13 +223,44 @@ export function VideoGrid({ tag, className = '', onVideoSelect }: VideoGridProps
                 className="cursor-pointer hover:opacity-90 transition-opacity"
                 onClick={() => onVideoSelect && onVideoSelect(video.video_id)}
               >
-                {/* Video Thumbnail */}
-                <div className="aspect-[9/16] bg-gray-200 dark:bg-gray-800 rounded-lg overflow-hidden mb-2">
+                {/* Video Thumbnail with hover-play */}
+                <div 
+                  className="aspect-[9/16] bg-gray-200 dark:bg-gray-800 rounded-lg overflow-hidden mb-2 group relative"
+                  onMouseEnter={(e) => {
+                    // Find the video element in this card and play it
+                    const videoElement = e.currentTarget.querySelector('video');
+                    if (videoElement) {
+                      videoElement.play().catch(err => console.log('Autoplay prevented:', err));
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    // Find the video element in this card and pause it
+                    const videoElement = e.currentTarget.querySelector('video');
+                    if (videoElement) {
+                      videoElement.pause();
+                      videoElement.currentTime = 0;
+                    }
+                  }}
+                >
+                  {/* Static thumbnail (visible before hover) */}
                   <img 
                     src={getVideoThumbnail(video)} 
                     alt={video.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover group-hover:opacity-0 absolute inset-0 transition-opacity"
                   />
+                  
+                  {/* Video player (revealed on hover) */}
+                  <div className="w-full h-full absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {video && (
+                      <VideoPlayer
+                        videoId={video.video_id}
+                        src={`https://lax-prod-catalyst-0.lp-playback.studio/hls/${video.video_id}/index.m3u8`}
+                        autoPlay={false}
+                        loop={true}
+                        className="w-full h-full"
+                      />
+                    )}
+                  </div>
                 </div>
                 
                 {/* Video Info */}

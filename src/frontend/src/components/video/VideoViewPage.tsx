@@ -1,8 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useActor } from '../../ic/Actors';
 import { useSiwe } from 'ic-siwe-js/react';
-import { VideoPlayer } from '../../livepeer/VideoPlayer';
-import { BackendExtended, UserProfile } from '../../livepeer/types';
+import { VideoPlayer } from '../../video-service';
+// Define UserProfile type locally to avoid import issues
+interface UserProfile {
+  evm_address: string;
+  avatar_url: string;
+  name: string;
+  principal?: Principal;
+}
+
+// Define BackendExtended type to maintain compatibility
+interface BackendExtended {
+  getVideoMetadata: (videoId: string) => any;
+  getVideoAnalytics: (videoId: string) => any;
+  getFollowers: (principal: Principal) => Promise<Principal[]>;
+  isFollowing: (follower: Principal, followee: Principal) => Promise<boolean>;
+  recordTip: (videoId: string, amount: bigint, txHash: string) => Promise<any>;
+}
 import { twMerge } from 'tailwind-merge';
 import { formatDistanceToNow } from 'date-fns';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -133,7 +148,8 @@ export function VideoViewPage({ videoId, className = '' }: VideoViewPageProps) {
   };
 
   // Format large numbers (e.g., 1.2M instead of 1,200,000)
-  const formatNumber = (num: number | bigint) => {
+  const formatNumber = (num: number | bigint | undefined | null) => {
+    if (num === undefined || num === null) return '0';
     const n = typeof num === 'bigint' ? Number(num) : num;
     if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
     if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
@@ -162,6 +178,7 @@ export function VideoViewPage({ videoId, className = '' }: VideoViewPageProps) {
                 className="w-full"
                 autoPlay={true}
                 loop={false}
+                src={`https://livepeercdn.studio/hls/${videoId}/index.m3u8`}
               />
             </div>
           )}
@@ -321,7 +338,8 @@ export function VideoViewPage({ videoId, className = '' }: VideoViewPageProps) {
                   // Record the tip in the backend
                   const backendActor = actor as unknown as BackendExtended;
                   // Convert amount to bigint with 18 decimals (ETH)
-                  const amountInWei = BigInt(parseFloat(amount) * 10**18);
+                  // Use Math.floor to ensure we have an integer
+                  const amountInWei = BigInt(Math.floor(parseFloat(amount) * 10**18));
                   
                   await backendActor.recordTip(videoId, amountInWei, txHash);
                   

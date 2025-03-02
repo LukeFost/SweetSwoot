@@ -52,3 +52,9 @@ lerna-debug.log*
 Makefile.prod
 
 info/
+docs/BETA_MODE.md
+docs/LIVEPEER_SETUP.md
+docs/PINATA_SETUP.md
+hls_ipfs.md
+pinata_live.md
+repomix-output.txt

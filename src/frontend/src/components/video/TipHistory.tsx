@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useActor } from '../../ic/Actors';
-import { BackendExtended } from '../../livepeer/types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
 import { faEthereum } from '@fortawesome/free-brands-svg-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { formatEther } from 'viem';
+
+// Define BackendExtended type locally
+interface BackendExtended {
+  getTipsForVideo: (videoId: string) => Promise<any[]>;
+}
 
 interface TipRecord {
   from_addr: string;
